@@ -931,6 +931,19 @@
         const brand = document.getElementById("brand-link");
         const onlinePill = document.getElementById("online-pill");
 
+        function maybeShowGuideFromUrl() {
+          const params = new URLSearchParams(window.location.search);
+          if (params.get("guide") !== "join") return;
+
+          setTimeout(() => {
+            showGuide();
+          }, 0);
+
+          const url = new URL(window.location.href);
+          url.searchParams.delete("guide");
+          history.replaceState({}, "", url.pathname + url.search + url.hash);
+        }
+
         [brand, onlinePill].forEach((el) => {
           if (!el) return;
           el.addEventListener("click", (e) => {
@@ -944,6 +957,8 @@
           e.preventDefault();
           showGuide();
         });
+
+        maybeShowGuideFromUrl();
 
         scheduleFitBrandSubtitle();
         if (document.fonts && document.fonts.ready) {
