@@ -371,6 +371,11 @@
     </header>
 
     <script>
+      const CACHE_KEYS = {
+        playerCount: "ls_playercount_v1",
+        discordCount: "ls_discordcount_v1",
+      };
+
       function getCached(key, maxAgeMs) {
         try {
           const raw = localStorage.getItem(key);
@@ -379,6 +384,15 @@
           if (!data || typeof data.t !== "number") return null;
           if (Date.now() - data.t > maxAgeMs) return null;
           return data.v;
+        } catch {
+          return null;
+        }
+      }
+
+      function getStaleCache(key) {
+        try {
+          const data = JSON.parse(localStorage.getItem(key) || "null");
+          return data && data.v ? data.v : null;
         } catch {
           return null;
         }
@@ -395,7 +409,7 @@
         const pill = document.getElementById("online-pill");
         const el = document.getElementById("playercount");
 
-        const cached = getCached("ls_playercount_v1", 60_000);
+        const cached = getCached(CACHE_KEYS.playerCount, 60_000);
         if (cached && cached.text) {
           pill.dataset.state = cached.state || "unknown";
           el.textContent = cached.text;
@@ -404,25 +418,24 @@
 
         try {
           const res = await fetch("https://api.mcsrvstat.us/2/lifestealsmp.com", { cache: "no-store" });
+          if (!res.ok) throw new Error("Player count request failed");
           const data = await res.json();
 
           if (data && data.online && data.players && typeof data.players.online === "number") {
             pill.dataset.state = "online";
             el.textContent = data.players.online + " online";
-            setCached("ls_playercount_v1", { state: "online", text: el.textContent });
+            setCached(CACHE_KEYS.playerCount, { state: "online", text: el.textContent });
           } else {
             pill.dataset.state = "offline";
             el.textContent = "Offline";
-            setCached("ls_playercount_v1", { state: "offline", text: el.textContent });
+            setCached(CACHE_KEYS.playerCount, { state: "offline", text: el.textContent });
           }
         } catch {
           pill.dataset.state = "unknown";
-          const stale = (function () {
-            try { return JSON.parse(localStorage.getItem("ls_playercount_v1") || "null"); } catch { return null; }
-          })();
-          if (stale && stale.v && stale.v.text) {
-            pill.dataset.state = stale.v.state || "unknown";
-            el.textContent = stale.v.text;
+          const stale = getStaleCache(CACHE_KEYS.playerCount);
+          if (stale && stale.text) {
+            pill.dataset.state = stale.state || "unknown";
+            el.textContent = stale.text;
           } else {
             el.textContent = "Unavailable";
           }
@@ -432,7 +445,7 @@
       async function loadDiscordMembers() {
         const el = document.getElementById("discordcount");
 
-        const cached = getCached("ls_discordcount_v1", 60_000);
+        const cached = getCached(CACHE_KEYS.discordCount, 60_000);
         if (cached && cached.text) {
           el.textContent = cached.text;
           return;
@@ -440,21 +453,20 @@
 
         try {
           const res = await fetch("https://discord.com/api/v9/invites/lifestealsmp?with_counts=true", { cache: "no-store" });
+          if (!res.ok) throw new Error("Discord count request failed");
           const data = await res.json();
 
           if (data && typeof data.approximate_member_count === "number") {
             el.textContent = data.approximate_member_count.toLocaleString() + " members";
-            setCached("ls_discordcount_v1", { text: el.textContent });
+            setCached(CACHE_KEYS.discordCount, { text: el.textContent });
           } else {
             el.textContent = "Discord";
-            setCached("ls_discordcount_v1", { text: el.textContent });
+            setCached(CACHE_KEYS.discordCount, { text: el.textContent });
           }
         } catch {
-          const stale = (function () {
-            try { return JSON.parse(localStorage.getItem("ls_discordcount_v1") || "null"); } catch { return null; }
-          })();
-          if (stale && stale.v && stale.v.text) {
-            el.textContent = stale.v.text;
+          const stale = getStaleCache(CACHE_KEYS.discordCount);
+          if (stale && stale.text) {
+            el.textContent = stale.text;
           } else {
             el.textContent = "Discord";
           }
