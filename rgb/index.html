@@ -442,6 +442,10 @@
         background: linear-gradient(90deg, #ff0000, #00ff00, #0000ff);
         position: relative;
         cursor: pointer;
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
       }
 
       .gradient-preview::before {
@@ -461,6 +465,10 @@
         transform: translate(-50%, -50%);
         width: 12px;
         height: 44px;
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
         background: rgba(255, 255, 255, 0.95);
         border: 2px solid rgba(0, 0, 0, 0.6);
         border-radius: 4px;
@@ -1324,42 +1332,50 @@
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 5000);
           
-          const res = await fetch("https://api.mcsrvstat.us/2/lifestealsmp.com", { 
-            cache: "no-store",
-            signal: controller.signal
-          });
-          clearTimeout(timeoutId);
-          
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data = await res.json();
-          
-          if (data.online) {
-            const count = data.players?.online || 0;
-            const text = `${count} online`;
-            pill.dataset.state = "online";
-            el.textContent = text;
-            setCached("ls_playercount_v1", { text, state: "online" });
-          } else {
-            pill.dataset.state = "offline";
-            el.textContent = "Offline";
-            setCached("ls_playercount_v1", { text: "Offline", state: "offline" });
+          try {
+            const res = await fetch("https://api.mcsrvstat.us/2/lifestealsmp.com", { 
+              cache: "no-store",
+              signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId); // Clear timeout on success
+            
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            
+            if (data.online) {
+              const count = data.players?.online || 0;
+              const text = `${count} online`;
+              pill.dataset.state = "online";
+              el.textContent = text;
+              setCached("ls_playercount_v1", { text, state: "online" });
+            } else {
+              pill.dataset.state = "offline";
+              el.textContent = "Offline";
+              setCached("ls_playercount_v1", { text: "Offline", state: "offline" });
+            }
+          } catch (err) {
+            clearTimeout(timeoutId); // Clear timeout on error too
+            if (retries > 0 && err.name !== "AbortError") {
+              setTimeout(() => loadPlayerCount(retries - 1), 2000);
+              return;
+            }
+            
+            pill.dataset.state = "unknown";
+            const stale = (function () {
+              try { return JSON.parse(localStorage.getItem("ls_playercount_v1") || "null"); } catch { return null; }
+            })();
+            if (stale && stale.v && stale.v.text) {
+              pill.dataset.state = stale.v.state || "unknown";
+              el.textContent = stale.v.text;
+            } else {
+              el.textContent = "Unavailable";
+            }
           }
-        } catch (err) {
-          if (retries > 0 && err.name !== "AbortError") {
-            setTimeout(() => loadPlayerCount(retries - 1), 2000);
-            return;
-          }
-          
+        } catch (outerErr) {
+          // Handle any errors in the outer try block
           pill.dataset.state = "unknown";
-          const stale = (function () {
-            try { return JSON.parse(localStorage.getItem("ls_playercount_v1") || "null"); } catch { return null; }
-          })();
-          if (stale && stale.v && stale.v.text) {
-            pill.dataset.state = stale.v.state || "unknown";
-            el.textContent = stale.v.text;
-          } else {
-            el.textContent = "Unavailable";
-          }
+          el.textContent = "Unavailable";
         }
       }
 
@@ -1397,6 +1413,7 @@
             setCached("ls_discordcount_v1", { text: el.textContent });
           }
         } catch (err) {
+          clearTimeout(timeoutId); // Clear timeout on error too
           if (retries > 0) {
             setTimeout(() => loadDiscordMembers(retries - 1), 2000);
             return;
@@ -1478,7 +1495,11 @@
       let addedColorIndices = []; // Stack to track indices of added colors in order (most recent last)
 
       function rgbToHex(r, g, b) {
-        return '#' + [r, g, b].map(x => {
+        // Clamp values to valid RGB range to prevent malformed hex codes
+        const clampedR = Math.max(0, Math.min(255, Math.round(r)));
+        const clampedG = Math.max(0, Math.min(255, Math.round(g)));
+        const clampedB = Math.max(0, Math.min(255, Math.round(b)));
+        return '#' + [clampedR, clampedG, clampedB].map(x => {
           const hex = x.toString(16);
           return hex.length === 1 ? '0' + hex : hex;
         }).join('');
@@ -1614,19 +1635,54 @@
       });
 
 
-      function updatePreview() {
+      // Global flag to track if any indicator is being dragged
+      let isDraggingAny = false;
+      
+      // Lightweight preview update (only gradient background, no DOM manipulation)
+      let gradientUpdateCount = 0;
+      function updatePreviewGradient() {
+        gradientUpdateCount++;
+        if (gradientUpdateCount % 50 === 0) {
+          console.log(`[PERF DEBUG] updatePreviewGradient called ${gradientUpdateCount} times`);
+        }
+        
         const preview = document.getElementById('gradient-preview');
         if (!preview) return;
         
-        // Make sure color stops are rendered first (for color picker access)
-        renderColorStops();
-        
-        // Sort color stops by position
+        // Sort color stops by position (cache this if possible)
         const sortedStops = [...colorStops].sort((a, b) => a.position - b.position);
         
         // Build gradient with positions
         const gradientStops = sortedStops.map(stop => `${stop.hex} ${stop.position}%`).join(', ');
         preview.style.background = `linear-gradient(90deg, ${gradientStops})`;
+      }
+
+      function updatePreview() {
+        const preview = document.getElementById('gradient-preview');
+        if (!preview) return;
+        
+        // Don't recreate indicators if dragging - just update positions
+        if (isDraggingAny) {
+          updatePreviewGradient();
+          // Update existing indicator positions without recreating them
+          colorStops.forEach((stop, index) => {
+            const existingIndicator = preview.querySelector(`.gradient-indicator[data-index="${index}"]`);
+            const existingBlob = preview.querySelector(`.gradient-color-blob[data-index="${index}"]`);
+            if (existingIndicator) {
+              existingIndicator.style.left = stop.position + '%';
+            }
+            if (existingBlob) {
+              existingBlob.style.left = stop.position + '%';
+            }
+          });
+          return;
+        }
+        
+        // Make sure color stops are rendered first (for color picker access)
+        renderColorStops();
+        
+        // Update gradient background
+        updatePreviewGradient();
         
         // Remove existing indicators and blobs
         const existingIndicators = preview.querySelectorAll('.gradient-indicator');
@@ -1732,15 +1788,63 @@
             let hasDragged = false;
             let startX = 0;
             let startPosition = 0;
+            let rafId = null;
+            let keyboardHandler = null;
+            let sortedStopsCache = null;
+            let cachedColorBlob = null;
+            let previewWidth = 0;
+            
+            // Debug tracking
+            let dragCount = 0;
+            let moveCount = 0;
+            const indicatorId = `indicator-${index}-${Date.now()}`;
+            console.log(`[INIT DEBUG] Created indicator ${indicatorId} for index ${index}`);
             
             indicator.addEventListener('mousedown', (e) => {
               e.stopPropagation();
+              e.preventDefault();
+              
+              dragCount++;
+              moveCount = 0;
+              console.log(`[DRAG DEBUG] ${indicatorId} - Drag #${dragCount} started`);
+              
+              // Blur any focused input fields to prevent keyboard input
+              const activeElement = document.activeElement;
+              if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+                activeElement.blur();
+              }
+              
               isDragging = true;
+              isDraggingAny = true; // Global flag to prevent preview recreation
               hasDragged = false;
               startX = e.clientX;
               startPosition = stop.position;
               indicator.style.cursor = 'grabbing';
               closeAllPickers();
+              
+              // Initialize sorted stops cache
+              sortedStopsCache = [...colorStops].sort((a, b) => a.position - b.position);
+              
+              // Cache preview width and color blob at drag start (no queries during drag)
+              const previewRect = preview.getBoundingClientRect();
+              previewWidth = previewRect.width;
+              cachedColorBlob = preview.querySelector(`.gradient-color-blob[data-index="${index}"]`);
+              
+              // Add event listeners only when dragging starts (prevents accumulation)
+              document.addEventListener('mousemove', handleMouseMove);
+              document.addEventListener('mouseup', handleMouseUp);
+              console.log(`[DRAG DEBUG] ${indicatorId} - Added document listeners`);
+              
+              // Prevent keyboard input during drag
+              keyboardHandler = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                return false;
+              };
+              document.addEventListener('keydown', keyboardHandler, true);
+              document.addEventListener('keyup', keyboardHandler, true);
+              document.addEventListener('keypress', keyboardHandler, true);
             });
             
             indicator.addEventListener('click', (e) => {
@@ -1753,7 +1857,16 @@
             const handleMouseMove = (e) => {
               if (!isDragging) return;
               
-              const previewRect = preview.getBoundingClientRect();
+              e.preventDefault();
+              moveCount++;
+              
+              // Log every 100 moves to track performance
+              if (moveCount % 100 === 0) {
+                console.log(`[PERF DEBUG] ${indicatorId} - Move #${moveCount}, Drag #${dragCount}`);
+                console.log(`[PERF DEBUG] RAF pending: ${rafId !== null}, Cache: ${sortedStopsCache ? sortedStopsCache.length : 0} stops`);
+              }
+              
+              // Use cached preview width (no expensive getBoundingClientRect on every move)
               const deltaX = e.clientX - startX;
               
               // Only consider it a drag if moved more than 3px
@@ -1761,52 +1874,94 @@
                 hasDragged = true;
               }
               
-              const deltaPercent = (deltaX / previewRect.width) * 100;
+              const deltaPercent = (deltaX / previewWidth) * 100;
               let newPosition = Math.max(0, Math.min(100, startPosition + deltaPercent));
               
-              const sortedStops = [...colorStops].sort((a, b) => a.position - b.position);
-              const currentIndex = sortedStops.findIndex(s => s === stop);
+              // Use cached sorted stops - don't re-sort during drag (positions updated directly)
+              const currentIndex = sortedStopsCache.findIndex(s => s === stop);
               const minDistance = 3;
               
-              if (currentIndex > 0) {
-                const minAllowed = sortedStops[currentIndex - 1].position + minDistance;
+              if (currentIndex > 0 && sortedStopsCache && sortedStopsCache[currentIndex - 1]) {
+                const minAllowed = sortedStopsCache[currentIndex - 1].position + minDistance;
                 if (newPosition < minAllowed) newPosition = minAllowed;
               } else if (newPosition < 0) {
                 newPosition = 0;
               }
               
-              if (currentIndex < sortedStops.length - 1) {
-                const maxAllowed = sortedStops[currentIndex + 1].position - minDistance;
+              if (currentIndex < sortedStopsCache.length - 1 && sortedStopsCache && sortedStopsCache[currentIndex + 1]) {
+                const maxAllowed = sortedStopsCache[currentIndex + 1].position - minDistance;
                 if (newPosition > maxAllowed) newPosition = maxAllowed;
               } else if (newPosition > 100) {
                 newPosition = 100;
               }
               
+              // Update positions directly (no DOM queries)
               stop.position = newPosition;
+              sortedStopsCache[currentIndex].position = newPosition;
               indicator.style.left = newPosition + '%';
               
-              // Update color blob position
-              const colorBlob = preview.querySelector(`.gradient-color-blob[data-index="${index}"]`);
-              if (colorBlob) {
-                colorBlob.style.left = newPosition + '%';
+              // Update cached color blob position (no querySelector)
+              if (cachedColorBlob) {
+                cachedColorBlob.style.left = newPosition + '%';
               }
               
-              updatePreview();
-              updateOutput();
-              updateTextPreview();
+              // Throttle ALL updates (including gradient) using requestAnimationFrame
+              // This ensures smooth 60fps dragging without blocking
+              // DO NOT call updatePreview() during drag - it recreates indicators!
+              if (!rafId) {
+                rafId = requestAnimationFrame(() => {
+                  updatePreviewGradient(); // Only update gradient, not full preview
+                  updateOutput();
+                  updateTextPreview();
+                  rafId = null;
+                });
+              }
             };
             
             const handleMouseUp = (e) => {
               if (isDragging) {
                 isDragging = false;
+                isDraggingAny = false; // Clear global flag
                 indicator.style.cursor = 'grab';
                 hasDragged = false;
+                
+                console.log(`[DRAG DEBUG] ${indicatorId} - Drag #${dragCount} ended. Total moves: ${moveCount}`);
+                
+                // Ensure final updates are applied
+                if (rafId !== null) {
+                  cancelAnimationFrame(rafId);
+                  rafId = null;
+                }
+                
+                // Clear all caches
+                sortedStopsCache = null;
+                cachedColorBlob = null;
+                previewWidth = 0;
+                
+                // Final update after drag ends - now safe to update full preview
+                requestAnimationFrame(() => {
+                  updateOutput();
+                  updateTextPreview();
+                });
+                
+                // Remove keyboard event handlers
+                if (keyboardHandler) {
+                  document.removeEventListener('keydown', keyboardHandler, true);
+                  document.removeEventListener('keyup', keyboardHandler, true);
+                  document.removeEventListener('keypress', keyboardHandler, true);
+                  keyboardHandler = null;
+                }
+                
+                // Remove mouse event listeners to prevent accumulation
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+                console.log(`[DRAG DEBUG] ${indicatorId} - Removed document listeners`);
               }
             };
             
-            document.addEventListener('mousemove', handleMouseMove);
-            document.addEventListener('mouseup', handleMouseUp);
-            
+            // Add event listeners only when dragging starts
+            // Note: The actual mousedown handler is added above (line 1794)
+            // This duplicate listener was removed to prevent leaks
             preview.appendChild(indicator);
           });
         }
@@ -1908,9 +2063,9 @@
             const lowerColor = sortedStops[lowerIndex];
             const upperColor = sortedStops[upperIndex];
             
-            const r = Math.round(lowerColor.r + (upperColor.r - lowerColor.r) * t);
-            const g = Math.round(lowerColor.g + (upperColor.g - lowerColor.g) * t);
-            const b = Math.round(lowerColor.b + (upperColor.b - lowerColor.b) * t);
+            const r = Math.max(0, Math.min(255, Math.round(lowerColor.r + (upperColor.r - lowerColor.r) * t)));
+            const g = Math.max(0, Math.min(255, Math.round(lowerColor.g + (upperColor.g - lowerColor.g) * t)));
+            const b = Math.max(0, Math.min(255, Math.round(lowerColor.b + (upperColor.b - lowerColor.b) * t)));
 
             // Convert to hex and format as &#rrggbb (lowercase)
             const hex = rgbToHex(r, g, b).substring(1).toLowerCase();
@@ -1950,9 +2105,9 @@
           const lowerColor = sortedStops[lowerIndex];
           const upperColor = sortedStops[upperIndex];
           
-          const r = Math.round(lowerColor.r + (upperColor.r - lowerColor.r) * t);
-          const g = Math.round(lowerColor.g + (upperColor.g - lowerColor.g) * t);
-          const b = Math.round(lowerColor.b + (upperColor.b - lowerColor.b) * t);
+          const r = Math.max(0, Math.min(255, Math.round(lowerColor.r + (upperColor.r - lowerColor.r) * t)));
+          const g = Math.max(0, Math.min(255, Math.round(lowerColor.g + (upperColor.g - lowerColor.g) * t)));
+          const b = Math.max(0, Math.min(255, Math.round(lowerColor.b + (upperColor.b - lowerColor.b) * t)));
 
           // Convert to hex and format as &#rrggbb (lowercase)
           const hex = rgbToHex(r, g, b).substring(1).toLowerCase();
@@ -2085,10 +2240,22 @@
         }
       }
 
+      let outputUpdateCount = 0;
       function updateOutput() {
+        outputUpdateCount++;
+        if (outputUpdateCount % 50 === 0) {
+          console.log(`[PERF DEBUG] updateOutput called ${outputUpdateCount} times, isDraggingAny: ${isDraggingAny}`);
+        }
+        
         const output = document.getElementById('output-code');
         output.textContent = generateCode();
-        updatePreview();
+        
+        // Only update full preview if not dragging (prevents indicator recreation)
+        if (!isDraggingAny) {
+          updatePreview();
+        } else {
+          updatePreviewGradient(); // Just update gradient during drag
+        }
         updateTextPreview();
       }
 
@@ -2121,6 +2288,7 @@
         // Custom color picker (hidden by default)
         const customPicker = document.createElement('div');
         customPicker.className = 'custom-color-picker';
+        customPicker.dataset.colorIndex = index; // Track which color stop this picker belongs to
 
         const pickerMain = document.createElement('div');
         pickerMain.className = 'color-picker-main';
@@ -2265,8 +2433,33 @@
           if (isDraggingSquare) isDraggingSquare = false;
         };
 
-        document.addEventListener('mousemove', handleSquareMouseMove);
-        document.addEventListener('mouseup', handleSquareMouseUp);
+        // Check if this picker is currently active (might be moved to body)
+        const existingPicker = document.querySelector(`.custom-color-picker[data-color-index="${index}"]`);
+        const pickerIsActive = existingPicker && existingPicker.classList.contains('active');
+        
+        // Remove old listeners for this index if they exist (when re-rendering)
+        // BUT: Don't remove if this picker is currently active and being dragged
+        if (colorPickerListeners.has(index) && !pickerIsActive && !isDraggingInPicker) {
+          const oldListeners = colorPickerListeners.get(index);
+          if (oldListeners.squareMove) {
+            document.removeEventListener('mousemove', oldListeners.squareMove);
+          }
+          if (oldListeners.squareUp) {
+            document.removeEventListener('mouseup', oldListeners.squareUp);
+          }
+        }
+        
+        // Store new listeners (or keep old ones if picker is active)
+        if (!colorPickerListeners.has(index) || (!pickerIsActive && !isDraggingInPicker)) {
+          if (!colorPickerListeners.has(index)) {
+            colorPickerListeners.set(index, {});
+          }
+          colorPickerListeners.get(index).squareMove = handleSquareMouseMove;
+          colorPickerListeners.get(index).squareUp = handleSquareMouseUp;
+          
+          document.addEventListener('mousemove', handleSquareMouseMove);
+          document.addEventListener('mouseup', handleSquareMouseUp);
+        }
 
         let isDraggingHue = false;
         const handleHueMove = (e) => {
@@ -2296,8 +2489,33 @@
           if (isDraggingHue) isDraggingHue = false;
         };
 
-        document.addEventListener('mousemove', handleHueMouseMove);
-        document.addEventListener('mouseup', handleHueMouseUp);
+        // Check if this picker is currently active (might be moved to body)
+        const existingPickerHue = document.querySelector(`.custom-color-picker[data-color-index="${index}"]`);
+        const pickerIsActiveHue = existingPickerHue && existingPickerHue.classList.contains('active');
+        
+        // Remove old listeners for this index if they exist (when re-rendering)
+        // BUT: Don't remove if this picker is currently active and being dragged
+        if (colorPickerListeners.has(index) && !pickerIsActiveHue && !isDraggingInPicker) {
+          const oldListeners = colorPickerListeners.get(index);
+          if (oldListeners.hueMove) {
+            document.removeEventListener('mousemove', oldListeners.hueMove);
+          }
+          if (oldListeners.hueUp) {
+            document.removeEventListener('mouseup', oldListeners.hueUp);
+          }
+        }
+        
+        // Store new listeners (or keep old ones if picker is active)
+        if (!colorPickerListeners.has(index) || (!pickerIsActiveHue && !isDraggingInPicker)) {
+          if (!colorPickerListeners.has(index)) {
+            colorPickerListeners.set(index, {});
+          }
+          colorPickerListeners.get(index).hueMove = handleHueMouseMove;
+          colorPickerListeners.get(index).hueUp = handleHueMouseUp;
+          
+          document.addEventListener('mousemove', handleHueMouseMove);
+          document.addEventListener('mouseup', handleHueMouseUp);
+        }
 
         colorSwatch.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -2412,9 +2630,43 @@
         }
       }
 
+      // Track color picker document listeners to prevent leaks
+      const colorPickerListeners = new Map(); // Map<index, { squareMove, squareUp, hueMove, hueUp }>
+      
       function renderColorStops() {
         const container = document.getElementById('color-stops');
         if (!container) return;
+        
+        // Check if any picker is currently active (open and possibly being dragged)
+        const hasActivePicker = document.querySelector('.custom-color-picker.active') !== null;
+        const isDragging = isDraggingInPicker;
+        
+        // Get current color stop indices before clearing
+        const currentIndices = new Set(colorStops.map((_, idx) => idx));
+        
+        // Only remove listeners for color stops that no longer exist
+        // BUT: Don't remove listeners if a picker is active and being dragged
+        if (!isDragging) {
+          colorPickerListeners.forEach((listeners, index) => {
+            if (!currentIndices.has(index)) {
+              // This color stop was removed, clean up its listeners
+              if (listeners.squareMove) {
+                document.removeEventListener('mousemove', listeners.squareMove);
+              }
+              if (listeners.squareUp) {
+                document.removeEventListener('mouseup', listeners.squareUp);
+              }
+              if (listeners.hueMove) {
+                document.removeEventListener('mousemove', listeners.hueMove);
+              }
+              if (listeners.hueUp) {
+                document.removeEventListener('mouseup', listeners.hueUp);
+              }
+              colorPickerListeners.delete(index);
+            }
+          });
+        }
+        
         container.innerHTML = '';
         
         // Sort by position to maintain order matching gradient bar
@@ -2848,6 +3100,11 @@
       }
 
       function initialize() {
+        // Parse URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const textParam = urlParams.get('text');
+        const typeParam = urlParams.get('type');
+        
         // Ensure colorStops is initialized before anything else
         if (!colorStops || colorStops.length < 2) {
           colorStops = [
@@ -2857,6 +3114,45 @@
         }
         renderColorStops();
         updateCharCounter();
+        
+        // Set text from URL parameter if provided
+        if (textParam) {
+          const input = document.getElementById('input-text');
+          if (input) {
+            const decodedText = decodeURIComponent(textParam);
+            // Truncate to 24 characters (maxlength limit)
+            const truncatedText = decodedText.substring(0, 24);
+            input.value = truncatedText;
+            originalText = truncatedText;
+            updateCharCounter();
+          }
+        }
+        
+        // Set switcher from URL parameter if provided
+        if (typeParam) {
+          const decodedType = decodeURIComponent(typeParam);
+          let commandToSelect = 'none';
+          
+          if (decodedType === '/namecolor' || decodedType === 'namecolor') {
+            commandToSelect = 'namecolor';
+          } else if (decodedType === '/itemname' || decodedType === 'itemname') {
+            commandToSelect = 'itemname';
+          } else if (decodedType === 'none' || decodedType === 'chat') {
+            commandToSelect = 'none';
+          }
+          
+          const buttons = document.querySelectorAll('.command-switcher button');
+          buttons.forEach(btn => {
+            if (btn.dataset.command === commandToSelect) {
+              btn.classList.add('active');
+              btn.setAttribute('aria-selected', 'true');
+            } else {
+              btn.classList.remove('active');
+              btn.setAttribute('aria-selected', 'false');
+            }
+          });
+        }
+        
         // Update gradient preview immediately (doesn't depend on fonts)
         updatePreview();
         
