@@ -9,12 +9,47 @@
     <meta name="description" content="Generate RGB gradients for Minecraft. Create beautiful color transitions for text, signs, and more." />
     <link rel="canonical" href="https://www.lifestealsmp.com/rgb/" />
     <link rel="icon" href="../favicon.ico" sizes="any" />
-
-    <!-- Minecraftia font - Loaded asynchronously -->
-    <link rel="stylesheet" href="https://fonts.cdnfonts.com/css/minecraftia" media="print" onload="this.media='all'; this.onload=null;" />
-    <noscript><link rel="stylesheet" href="https://fonts.cdnfonts.com/css/minecraftia" /></noscript>
+    
+    <!-- Preload Minecraft fonts for accurate preview rendering -->
+    <link rel="preload" href="fonts/MinecraftRegular.woff" as="font" type="font/woff" crossorigin />
+    <link rel="preload" href="fonts/MinecraftBold.woff" as="font" type="font/woff" crossorigin />
+    <link rel="preload" href="fonts/MinecraftItalic.woff" as="font" type="font/woff" crossorigin />
+    <link rel="preload" href="fonts/MinecraftBoldItalic.woff" as="font" type="font/woff" crossorigin />
 
     <style>
+      /* Minecraft fonts from Birdflop */
+      @font-face {
+        font-family: 'Minecraft';
+        src: url('fonts/MinecraftRegular.woff') format('woff');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+      
+      @font-face {
+        font-family: 'Minecraft';
+        src: url('fonts/MinecraftBold.woff') format('woff');
+        font-weight: bold;
+        font-style: normal;
+        font-display: swap;
+      }
+      
+      @font-face {
+        font-family: 'Minecraft';
+        src: url('fonts/MinecraftItalic.woff') format('woff');
+        font-weight: normal;
+        font-style: italic;
+        font-display: swap;
+      }
+      
+      @font-face {
+        font-family: 'Minecraft';
+        src: url('fonts/MinecraftBoldItalic.woff') format('woff');
+        font-weight: bold;
+        font-style: italic;
+        font-display: swap;
+      }
+      
       :root {
         --bg: #0c0c0c;
         --surface: #151515;
@@ -392,22 +427,146 @@
         margin: 24px 0;
       }
 
+      .gradient-preview-wrapper {
+        position: relative;
+        margin-bottom: 60px;
+        padding-left: 44px;
+        padding-right: 44px;
+      }
+
       .gradient-preview {
         width: 100%;
-        height: 80px;
+        height: 40px;
         border-radius: 8px;
-        margin-bottom: 28px;
         border: 1px solid var(--border);
         background: linear-gradient(90deg, #ff0000, #00ff00, #0000ff);
+        position: relative;
+        cursor: pointer;
+      }
+
+      .gradient-preview::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: 8px;
+        pointer-events: none;
+      }
+
+      .gradient-indicator {
+        position: absolute;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 12px;
+        height: 44px;
+        background: rgba(255, 255, 255, 0.95);
+        border: 2px solid rgba(0, 0, 0, 0.6);
+        border-radius: 4px;
+        cursor: grab;
+        z-index: 2;
+        transition: background 120ms ease, transform 120ms ease;
+      }
+
+      .gradient-indicator:hover {
+        background: rgba(255, 255, 255, 1);
+        transform: translate(-50%, -50%) scale(1.15);
+        border-color: rgba(0, 0, 0, 0.8);
+      }
+
+      .gradient-indicator:active {
+        cursor: grabbing;
+        transform: translate(-50%, -50%) scale(1.2);
+      }
+
+      .gradient-color-blob {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%);
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        border: 2px solid var(--border);
+        cursor: pointer;
+        z-index: 2;
+        transition: transform 120ms ease, border-color 120ms ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      .gradient-color-blob:hover {
+        transform: translateX(-50%) scale(1.1);
+        border-color: var(--accent);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      }
+
+      .gradient-color-blob:active {
+        transform: translateX(-50%) scale(0.95);
+      }
+
+      .gradient-add-btn,
+      .gradient-remove-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        height: 32px;
+        width: 32px;
+        border-radius: 6px;
+        border: 2px solid var(--border);
+        background: var(--surface-light);
+        color: var(--text);
+        font-size: 20px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 120ms ease, transform 120ms ease, border-color 120ms ease;
+        z-index: 3;
+        line-height: 1;
+        padding: 0;
+      }
+
+      .gradient-add-btn {
+        right: 0;
+      }
+
+      .gradient-remove-btn {
+        left: 0;
+      }
+
+      .gradient-add-btn:hover,
+      .gradient-remove-btn:hover {
+        background: var(--surface);
+        border-color: var(--accent);
+        transform: translateY(-50%) scale(1.1);
+      }
+
+      .gradient-add-btn:active,
+      .gradient-remove-btn:active {
+        transform: translateY(-50%) scale(0.95);
+      }
+
+      .gradient-remove-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .gradient-remove-btn:disabled:hover {
+        transform: translateY(-50%);
+        background: var(--surface-light);
+        border-color: var(--border);
       }
 
       .colors-section {
-        margin-bottom: 28px;
+        margin-bottom: 20px;
       }
 
       .color-stops {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: wrap;
         gap: 12px;
         margin-bottom: 16px;
       }
@@ -420,7 +579,8 @@
         background: var(--surface-light);
         border-radius: 8px;
         border: 1px solid var(--border);
-        width: 100%;
+        flex: 0 0 auto;
+        min-width: 200px;
       }
 
       .color-picker-wrapper {
@@ -439,16 +599,22 @@
         z-index: 1000;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         min-width: 280px;
+        width: fit-content;
+      }
+
+      .custom-color-picker[style*="position: fixed"] {
+        position: fixed !important;
       }
 
       .custom-color-picker.active {
-        display: block;
+        display: block !important;
       }
 
       .color-picker-main {
         display: flex;
         gap: 12px;
         margin-bottom: 16px;
+        justify-content: center;
       }
 
       .color-picker-square {
@@ -525,9 +691,9 @@
       }
 
       .color-hex-input {
-        font-family: 'Courier New', monospace;
+        font-family: "Minecraft", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         font-size: 13px;
-        font-weight: 600;
+        font-weight: normal;
         color: var(--text);
         padding: 8px 10px;
         background: var(--bg);
@@ -580,21 +746,37 @@
         margin-top: 0;
       }
 
-      .output-wrapper {
+      .output-header {
         display: flex;
-        align-items: flex-start;
+        align-items: center;
         gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .output-header h2 {
+        margin: 0;
+      }
+
+      .output-wrapper {
         margin-bottom: 0;
       }
 
-      .output-code {
-        flex: 1;
+      .output-code-container {
+        position: relative;
         background: var(--bg);
         border: 1px solid var(--border);
         border-radius: 8px;
+      }
+
+      .output-code {
+        width: 100%;
+        background: transparent;
+        border: none;
+        border-radius: 8px;
         padding: 12px 14px;
-        font-family: "Minecraftia", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-        font-size: 13px;
+        padding-right: 80px;
+        font-family: "Minecraft", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 16px;
         color: var(--text);
         word-break: break-all;
         min-height: 50px;
@@ -603,6 +785,10 @@
       }
 
       .copy {
+        position: absolute;
+        top: 50%;
+        right: 8px;
+        transform: translateY(-50%);
         height: 34px;
         padding: 0 12px;
         border-radius: 10px;
@@ -613,32 +799,46 @@
         font-size: 12px;
         cursor: pointer;
         transition: background 120ms ease, transform 100ms ease;
-        flex-shrink: 0;
+        z-index: 1;
       }
+      
       .copy:hover { background: #222222; }
-      .copy:active { transform: scale(0.98); }
+      .copy:active { transform: translateY(-50%) scale(0.98); }
       .copy:disabled {
         opacity: 0.6;
         cursor: not-allowed;
       }
 
       .input-preview-section {
-        margin-bottom: 28px;
+        margin-bottom: 20px;
       }
 
       .input-preview-wrapper {
         display: flex;
         gap: 20px;
-        margin-bottom: 20px;
+        margin-bottom: 0;
       }
 
       .input-preview-group {
-        flex: 0 0 calc(50% - 10px);
-        max-width: calc(50% - 10px);
+        flex: 0 0 75%;
+        max-width: 75%;
+      }
+
+      .formatting-group {
+        flex: 0 0 25%;
+        max-width: 25%;
+      }
+
+      .formatting-group h2 {
+        font-size: 16px;
+        font-weight: 600;
+        margin: 0 0 6px 0;
+        color: var(--muted);
+        text-transform: uppercase;
       }
 
       .text-input-group {
-        margin-bottom: 16px;
+        margin-bottom: 0;
         position: relative;
       }
 
@@ -676,10 +876,10 @@
         border-radius: 8px;
         color: transparent;
         caret-color: var(--text);
-        font-size: 18px;
+        font-size: 24px;
         font-weight: 500;
-        font-family: "Minecraftia", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-        transition: border-color 120ms ease;
+        font-family: "Minecraft", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        transition: border-color 120ms ease, font-size 120ms ease;
         letter-spacing: 0.5px;
         position: relative;
         z-index: 1;
@@ -687,10 +887,21 @@
         box-sizing: border-box;
       }
 
+      .text-input-group input[type="text"]::selection {
+        background: rgba(59, 130, 246, 0.3);
+        color: transparent;
+      }
+
+      .text-input-group input[type="text"]::-moz-selection {
+        background: rgba(59, 130, 246, 0.3);
+        color: transparent;
+      }
+
       .text-input-group input[type="text"]:focus {
         outline: none;
         border-color: var(--accent);
       }
+
 
       .text-preview {
         position: absolute;
@@ -702,63 +913,63 @@
         background: var(--bg);
         border: 1px solid transparent;
         border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-        font-family: "Minecraftia", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-        font-size: 18px;
+        font-family: "Minecraft", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 24px;
         font-weight: 500;
         line-height: 1.5;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.5px; /* Match input field's letter-spacing */
         white-space: pre;
         word-break: normal;
         pointer-events: none;
         z-index: 0;
         box-sizing: border-box;
         overflow: hidden;
+        display: block;
+        transition: font-size 120ms ease;
+        -webkit-font-smoothing: none;
+        -moz-osx-font-smoothing: unset;
+        font-smooth: never;
+        text-rendering: optimizeSpeed;
       }
 
       .text-preview-char {
-        display: inline-block;
+        display: inline;
+        margin: 0;
+        padding: 0;
+        font-family: "Minecraft", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        image-rendering: -moz-crisp-edges;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+        -webkit-font-smoothing: none;
+        -moz-osx-font-smoothing: unset;
+        font-smooth: never;
+        text-rendering: optimizeSpeed;
       }
 
-      .text-preview-char.bold {
-        font-weight: bold;
-        text-shadow: 
-          1.5px 0 0 currentColor,
-          -1.5px 0 0 currentColor,
-          0 1.5px 0 currentColor,
-          0 -1.5px 0 currentColor,
-          1.5px 1.5px 0 currentColor,
-          -1.5px -1.5px 0 currentColor,
-          1.5px -1.5px 0 currentColor,
-          -1.5px 1.5px 0 currentColor,
-          1px 0 0 currentColor,
-          -1px 0 0 currentColor,
-          0 1px 0 currentColor,
-          0 -1px 0 currentColor;
-      }
-
-      .options-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-        margin-bottom: 20px;
-      }
-
-      @media (max-width: 640px) {
-        .options-row {
-          grid-template-columns: 1fr;
-        }
-      }
-
-      .option-group {
+      .formatting-group {
         display: flex;
         flex-direction: column;
         gap: 12px;
       }
 
-      .option-group label {
+      @media (max-width: 640px) {
+        .input-preview-wrapper {
+          flex-direction: column;
+        }
+        
+        .input-preview-group,
+        .formatting-group {
+          flex: 1;
+          max-width: 100%;
+        }
+        
+        .output-header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+
+      .formatting-group label {
         font-size: 12px;
         font-weight: 600;
         color: var(--muted);
@@ -766,30 +977,69 @@
         letter-spacing: 0.5px;
       }
 
+      .command-switcher-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-top: 16px;
+      }
+
+      .command-switcher-wrapper {
+        flex: 0.9;
+        min-width: 0;
+      }
+
       .command-switcher {
         display: flex;
-        gap: 6px;
-        background: var(--bg);
+        gap: 4px;
+        background: var(--surface);
         border: 1px solid var(--border);
-        border-radius: 8px;
-        padding: 4px;
+        border-radius: 6px;
+        padding: 3px;
+        width: 100%;
       }
 
       .command-switcher button {
         flex: 1;
-        padding: 10px 14px;
+        min-width: 0;
+        padding: 6px 12px;
         background: transparent;
-        border: none;
-        border-radius: 6px;
-        color: var(--muted);
-        font-size: 13px;
-        font-weight: 600;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        color: var(--text);
+        font-size: 14px;
+        font-weight: normal;
+        font-family: "Minecraft", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         cursor: pointer;
-        transition: all 120ms ease;
+        transition: all 150ms ease;
+        position: relative;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .command-switcher button:hover:not(.active) {
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.08);
+        border-color: var(--border);
       }
 
       .command-switcher button.active {
-        background: var(--surface-light);
+        background: var(--accent);
+        color: #ffffff;
+        box-shadow: none;
+        font-weight: normal;
+        border: 1px solid transparent;
+      }
+
+      .command-switcher button:not(.active) {
+        opacity: 0.75;
+        color: var(--muted);
+      }
+
+      .command-switcher button:not(.active):hover {
+        opacity: 1;
         color: var(--text);
       }
 
@@ -802,7 +1052,7 @@
       .formatting-option {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
       }
 
       .formatting-option input[type="checkbox"] {
@@ -810,14 +1060,64 @@
         height: 18px;
         cursor: pointer;
         accent-color: var(--accent);
+        flex-shrink: 0;
+        margin: 0;
       }
 
       .formatting-option label {
-        font-size: 13px;
+        font-size: 14px;
         font-weight: 500;
         color: var(--text);
         cursor: pointer;
         user-select: none;
+        line-height: 1.5;
+        font-family: "Minecraft", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+
+      .format-label-bold {
+        font-weight: bold !important;
+        font-family: "Minecraft", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+
+      .format-label-italic {
+        font-style: italic;
+        font-family: "Minecraft", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+
+      .format-label-underline {
+        text-decoration: underline;
+        font-family: "Minecraft", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+
+      .format-label-strikethrough {
+        text-decoration: line-through;
+        font-family: "Minecraft", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+
+      .small-font-option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+
+      .small-font-option input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: var(--accent);
+        flex-shrink: 0;
+        margin: 0;
+      }
+
+      .small-font-option label {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text);
+        cursor: pointer;
+        user-select: none;
+        line-height: 1.5;
+        font-family: "Minecraft", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       }
     </style>
   </head>
@@ -915,36 +1215,39 @@
                     </div>
                     <span class="char-counter" id="char-counter">0/24</span>
                   </div>
-                </div>
-              </div>
-
-              <div class="options-row">
-                <div class="option-group">
-                  <label>Command</label>
-                  <div class="command-switcher" role="tablist">
-                    <button type="button" class="active" data-command="namecolor" role="tab" aria-selected="true">Namecolor</button>
-                    <button type="button" data-command="itemname" role="tab" aria-selected="false">Itemname</button>
+                  <div class="command-switcher-row">
+                    <div class="command-switcher-wrapper">
+                      <div class="command-switcher" role="tablist">
+                        <button type="button" class="active" data-command="none" role="tab" aria-selected="true">Chat</button>
+                        <button type="button" data-command="itemname" role="tab" aria-selected="false">/itemname</button>
+                        <button type="button" data-command="namecolor" role="tab" aria-selected="false">/namecolor</button>
+                      </div>
+                    </div>
+                    <div class="small-font-option">
+                      <input type="checkbox" id="format-small" />
+                      <label for="format-small">sᴍᴀʟʟ ꜰᴏɴᴛ</label>
+                    </div>
                   </div>
                 </div>
 
-                <div class="option-group">
-                  <label>Formatting</label>
+                <div class="formatting-group">
+                  <h2>Formatting</h2>
                   <div class="formatting-options">
                     <div class="formatting-option">
                       <input type="checkbox" id="format-bold" />
-                      <label for="format-bold">Bold - &l</label>
+                      <label for="format-bold" class="format-label-bold">Bold</label>
                     </div>
                     <div class="formatting-option">
                       <input type="checkbox" id="format-italic" />
-                      <label for="format-italic">Italic - &o</label>
+                      <label for="format-italic" class="format-label-italic">Italic</label>
                     </div>
                     <div class="formatting-option">
                       <input type="checkbox" id="format-underline" />
-                      <label for="format-underline">Underline - &n</label>
+                      <label for="format-underline" class="format-label-underline">Underline</label>
                     </div>
                     <div class="formatting-option">
                       <input type="checkbox" id="format-strikethrough" />
-                      <label for="format-strikethrough">Strikethrough - &m</label>
+                      <label for="format-strikethrough" class="format-label-strikethrough">Strikethrough</label>
                     </div>
                   </div>
                 </div>
@@ -955,20 +1258,27 @@
 
             <div class="colors-section">
               <h2>Colors</h2>
-              <div class="gradient-preview" id="gradient-preview"></div>
-              <div class="color-stops" id="color-stops">
-                <!-- Color stops will be added here -->
+              <div class="gradient-preview-wrapper">
+                <button class="gradient-remove-btn" id="gradient-remove-btn" type="button" title="Remove Last Color">−</button>
+                <div class="gradient-preview" id="gradient-preview"></div>
+                <button class="gradient-add-btn" id="gradient-add-btn" type="button" title="Add Color">+</button>
               </div>
-              <button class="btn add-color-btn" id="add-color-btn">+ Add Color</button>
+              <div class="color-stops" id="color-stops" style="display: none;">
+                <!-- Color stops will be added here (hidden, but needed for color picker) -->
+              </div>
             </div>
 
             <div class="section-divider"></div>
 
             <div class="output-section">
-              <h2>Output</h2>
+              <div class="output-header">
+                <h2>Output</h2>
+              </div>
               <div class="output-wrapper">
-                <div class="output-code" id="output-code">Add at least 2 colors to generate gradient code</div>
-                <button class="copy" type="button" id="copy-btn">Copy</button>
+                <div class="output-code-container">
+                  <div class="output-code" id="output-code">Add at least 2 colors to generate gradient code</div>
+                  <button class="copy" type="button" id="copy-btn">Copy</button>
+                </div>
               </div>
             </div>
           </div>
@@ -977,7 +1287,6 @@
     </main>
 
     <script>
-      // Cache helper functions
       function getCached(key, maxAgeMs) {
         try {
           const raw = localStorage.getItem(key);
@@ -997,7 +1306,6 @@
         } catch {}
       }
 
-      // Load player count
       async function loadPlayerCount(retries = 2) {
         const pill = document.getElementById("online-pill");
         const el = document.getElementById("playercount");
@@ -1055,7 +1363,6 @@
         }
       }
 
-      // Load Discord members
       async function loadDiscordMembers(retries = 2) {
         const el = document.getElementById("discordcount");
         if (!el) return;
@@ -1066,7 +1373,6 @@
           return;
         }
 
-        // Show loading state
         el.textContent = "Loading...";
 
         try {
@@ -1091,7 +1397,6 @@
             setCached("ls_discordcount_v1", { text: el.textContent });
           }
         } catch (err) {
-          // Retry logic
           if (retries > 0) {
             setTimeout(() => loadDiscordMembers(retries - 1), 2000);
             return;
@@ -1108,7 +1413,6 @@
         }
       }
 
-      // Initialize API calls
       function initAPICalls() {
         if ('requestIdleCallback' in window) {
           requestIdleCallback(() => {
@@ -1168,9 +1472,10 @@
 
       // RGB Gradient Generator
       let colorStops = [
-        { r: 244, g: 84, b: 84, hex: '#f45454' },
-        { r: 244, g: 84, b: 84, hex: '#f45454' }
+        { r: 155, g: 255, b: 0, hex: '#9BFF00', position: 0 },
+        { r: 0, g: 207, b: 255, hex: '#00CFFF', position: 100 }
       ];
+      let addedColorIndices = []; // Stack to track indices of added colors in order (most recent last)
 
       function rgbToHex(r, g, b) {
         return '#' + [r, g, b].map(x => {
@@ -1239,10 +1544,299 @@
         };
       }
 
+      // Global function to close all pickers
+      function closeAllPickers() {
+        document.querySelectorAll('.custom-color-picker.active').forEach(picker => {
+          picker.classList.remove('active');
+          picker.style.display = 'none';
+          // Move pickers back to their original parent if they were moved to body
+          if (picker.dataset.originalParent) {
+            const originalParent = document.getElementById(picker.dataset.originalParent);
+            if (originalParent && picker.parentElement === document.body) {
+              originalParent.appendChild(picker);
+            }
+          }
+        });
+      }
+
+      let isDraggingInPicker = false;
+      let preventClickClose = false;
+
+      document.addEventListener('mouseup', (e) => {
+        if (isDraggingInPicker) {
+          preventClickClose = true;
+          setTimeout(() => {
+            preventClickClose = false;
+            isDraggingInPicker = false;
+          }, 100);
+        }
+      });
+      document.addEventListener('click', (e) => {
+        // Don't close if we just finished dragging in a picker
+        if (preventClickClose) {
+          return;
+        }
+        
+        // Check if click is outside any active picker
+        const activePickers = document.querySelectorAll('.custom-color-picker.active');
+        if (activePickers.length > 0) {
+          let clickedInsidePicker = false;
+          activePickers.forEach(picker => {
+            if (picker.contains(e.target)) {
+              clickedInsidePicker = true;
+            }
+          });
+          
+          // Also check if click is on a color blob (to allow opening/toggling)
+          // But skip if we just closed it (prevent immediate reopening)
+          if (e.target.classList.contains('gradient-color-blob')) {
+            if (e.target.dataset.justClosed === 'true') {
+              // We just closed this picker, don't reopen it
+              e.target.dataset.justClosed = 'false'; // Clear the flag
+              return;
+            }
+            clickedInsidePicker = true;
+          }
+          
+          // Don't close if clicking on add/remove buttons (they handle their own logic)
+          // Note: gradient indicators now close pickers in their own click handler
+          if (e.target.classList.contains('gradient-add-btn') ||
+              e.target.classList.contains('gradient-remove-btn') ||
+              e.target.closest('.gradient-add-btn') ||
+              e.target.closest('.gradient-remove-btn')) {
+            clickedInsidePicker = true;
+          }
+          
+          if (!clickedInsidePicker) {
+            closeAllPickers();
+          }
+        }
+      });
+
+
       function updatePreview() {
         const preview = document.getElementById('gradient-preview');
-        const gradient = colorStops.map(stop => stop.hex).join(', ');
-        preview.style.background = `linear-gradient(90deg, ${gradient})`;
+        if (!preview) return;
+        
+        // Make sure color stops are rendered first (for color picker access)
+        renderColorStops();
+        
+        // Sort color stops by position
+        const sortedStops = [...colorStops].sort((a, b) => a.position - b.position);
+        
+        // Build gradient with positions
+        const gradientStops = sortedStops.map(stop => `${stop.hex} ${stop.position}%`).join(', ');
+        preview.style.background = `linear-gradient(90deg, ${gradientStops})`;
+        
+        // Remove existing indicators and blobs
+        const existingIndicators = preview.querySelectorAll('.gradient-indicator');
+        existingIndicators.forEach(ind => ind.remove());
+        const existingBlobs = preview.querySelectorAll('.gradient-color-blob');
+        existingBlobs.forEach(blob => blob.remove());
+        
+        // Add indicators and color blobs for each color stop
+        if (colorStops.length > 0) {
+          colorStops.forEach((stop, index) => {
+            const indicator = document.createElement('div');
+            indicator.className = 'gradient-indicator';
+            indicator.dataset.index = index;
+            indicator.style.left = stop.position + '%';
+            
+            // Create color blob below the dash
+            const colorBlob = document.createElement('div');
+            colorBlob.className = 'gradient-color-blob';
+            colorBlob.dataset.index = index;
+            colorBlob.style.left = stop.position + '%';
+            colorBlob.style.background = stop.hex;
+            
+            // Make blob clickable to open color picker
+            colorBlob.addEventListener('click', (e) => {
+              e.stopPropagation();
+              e.stopImmediatePropagation(); // Prevent global click handler from running
+              e.preventDefault();
+              
+              // Check if picker for this index is already active by looking at all active pickers
+              const activePickers = document.querySelectorAll('.custom-color-picker.active');
+              let activePickerForThisIndex = null;
+              
+              activePickers.forEach(picker => {
+                // Check if this picker belongs to the clicked index
+                // The picker might be in body or in the color-stops container
+                let pickerIndex = null;
+                const colorStopParent = picker.closest('.color-stop');
+                if (colorStopParent) {
+                  pickerIndex = colorStopParent.dataset.index;
+                } else {
+                  // If picker is in body, we need to find its index another way
+                  // Check all color-stop elements to see which one contains this picker's original parent
+                  const allColorStops = document.querySelectorAll('.color-stop');
+                  allColorStops.forEach(stop => {
+                    const stopPicker = stop.querySelector('.custom-color-picker');
+                    if (stopPicker === picker || (picker.dataset.originalParent === 'color-stops' && stop.contains(picker))) {
+                      pickerIndex = stop.dataset.index;
+                    }
+                  });
+                }
+                
+                if (pickerIndex === String(index)) {
+                  activePickerForThisIndex = picker;
+                }
+              });
+              
+              if (activePickerForThisIndex) {
+                closeAllPickers();
+                colorBlob.dataset.justClosed = 'true';
+                setTimeout(() => {
+                  if (colorBlob?.dataset) colorBlob.dataset.justClosed = 'false';
+                }, 200);
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                return;
+              }
+              
+              renderColorStops();
+              const updatedColorStopElement = document.querySelector(`.color-stop[data-index="${index}"]`);
+              if (updatedColorStopElement) {
+                const updatedPicker = updatedColorStopElement.querySelector('.custom-color-picker');
+                if (updatedPicker) {
+                  closeAllPickers();
+                  setTimeout(() => {
+                    const blobRect = colorBlob.getBoundingClientRect();
+                    if (!updatedPicker.dataset.originalParent) {
+                      const colorStopsContainer = document.getElementById('color-stops');
+                      if (colorStopsContainer?.contains(updatedPicker)) {
+                        updatedPicker.dataset.originalParent = 'color-stops';
+                      }
+                    }
+                    if (updatedPicker.parentElement !== document.body) {
+                      document.body.appendChild(updatedPicker);
+                    }
+                    updatedPicker.style.position = 'fixed';
+                    updatedPicker.style.display = 'block';
+                    updatedPicker.style.visibility = 'visible';
+                    const pickerWidth = 280;
+                    const leftPos = blobRect.left + blobRect.width / 2 - pickerWidth / 2;
+                    updatedPicker.style.left = Math.max(8, Math.min(window.innerWidth - pickerWidth - 8, leftPos)) + 'px';
+                    updatedPicker.style.top = (blobRect.bottom + 8) + 'px';
+                    updatedPicker.style.zIndex = '10000';
+                    updatedPicker.classList.add('active');
+                  }, 10);
+                }
+              }
+            });
+            
+            preview.appendChild(colorBlob);
+            
+            // Make draggable
+            let isDragging = false;
+            let hasDragged = false;
+            let startX = 0;
+            let startPosition = 0;
+            
+            indicator.addEventListener('mousedown', (e) => {
+              e.stopPropagation();
+              isDragging = true;
+              hasDragged = false;
+              startX = e.clientX;
+              startPosition = stop.position;
+              indicator.style.cursor = 'grabbing';
+              closeAllPickers();
+            });
+            
+            indicator.addEventListener('click', (e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              e.stopImmediatePropagation();
+              closeAllPickers();
+            });
+            
+            const handleMouseMove = (e) => {
+              if (!isDragging) return;
+              
+              const previewRect = preview.getBoundingClientRect();
+              const deltaX = e.clientX - startX;
+              
+              // Only consider it a drag if moved more than 3px
+              if (Math.abs(deltaX) > 3) {
+                hasDragged = true;
+              }
+              
+              const deltaPercent = (deltaX / previewRect.width) * 100;
+              let newPosition = Math.max(0, Math.min(100, startPosition + deltaPercent));
+              
+              const sortedStops = [...colorStops].sort((a, b) => a.position - b.position);
+              const currentIndex = sortedStops.findIndex(s => s === stop);
+              const minDistance = 3;
+              
+              if (currentIndex > 0) {
+                const minAllowed = sortedStops[currentIndex - 1].position + minDistance;
+                if (newPosition < minAllowed) newPosition = minAllowed;
+              } else if (newPosition < 0) {
+                newPosition = 0;
+              }
+              
+              if (currentIndex < sortedStops.length - 1) {
+                const maxAllowed = sortedStops[currentIndex + 1].position - minDistance;
+                if (newPosition > maxAllowed) newPosition = maxAllowed;
+              } else if (newPosition > 100) {
+                newPosition = 100;
+              }
+              
+              stop.position = newPosition;
+              indicator.style.left = newPosition + '%';
+              
+              // Update color blob position
+              const colorBlob = preview.querySelector(`.gradient-color-blob[data-index="${index}"]`);
+              if (colorBlob) {
+                colorBlob.style.left = newPosition + '%';
+              }
+              
+              updatePreview();
+              updateOutput();
+              updateTextPreview();
+            };
+            
+            const handleMouseUp = (e) => {
+              if (isDragging) {
+                isDragging = false;
+                indicator.style.cursor = 'grab';
+                hasDragged = false;
+              }
+            };
+            
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+            
+            preview.appendChild(indicator);
+          });
+        }
+      }
+
+      // Store original text (before small caps conversion) to preserve capitalization
+      let originalText = 'Hello World';
+
+      function toSmallCaps(text) {
+        const smallCapsMap = {
+          'A': 'ᴀ', 'B': 'ʙ', 'C': 'ᴄ', 'D': 'ᴅ', 'E': 'ᴇ', 'F': 'ꜰ', 'G': 'ɢ', 'H': 'ʜ',
+          'I': 'ɪ', 'J': 'ᴊ', 'K': 'ᴋ', 'L': 'ʟ', 'M': 'ᴍ', 'N': 'ɴ', 'O': 'ᴏ', 'P': 'ᴘ',
+          'Q': 'ꞯ', 'R': 'ʀ', 'S': 's', 'T': 'ᴛ', 'U': 'ᴜ', 'V': 'ᴠ', 'W': 'ᴡ', 'X': 'x',
+          'Y': 'ʏ', 'Z': 'ᴢ',
+          'a': 'ᴀ', 'b': 'ʙ', 'c': 'ᴄ', 'd': 'ᴅ', 'e': 'ᴇ', 'f': 'ꜰ', 'g': 'ɢ', 'h': 'ʜ',
+          'i': 'ɪ', 'j': 'ᴊ', 'k': 'ᴋ', 'l': 'ʟ', 'm': 'ᴍ', 'n': 'ɴ', 'o': 'ᴏ', 'p': 'ᴘ',
+          'q': 'ꞯ', 'r': 'ʀ', 's': 's', 't': 'ᴛ', 'u': 'ᴜ', 'v': 'ᴠ', 'w': 'ᴡ', 'x': 'x',
+          'y': 'ʏ', 'z': 'ᴢ'
+        };
+        return text.split('').map(char => smallCapsMap[char] || char).join('');
+      }
+
+      function fromSmallCaps(text) {
+        const reverseMap = {
+          'ᴀ': 'A', 'ʙ': 'B', 'ᴄ': 'C', 'ᴅ': 'D', 'ᴇ': 'E', 'ꜰ': 'F', 'ɢ': 'G', 'ʜ': 'H',
+          'ɪ': 'I', 'ᴊ': 'J', 'ᴋ': 'K', 'ʟ': 'L', 'ᴍ': 'M', 'ɴ': 'N', 'ᴏ': 'O', 'ᴘ': 'P',
+          'ꞯ': 'Q', 'ʀ': 'R', 's': 'S', 'ᴛ': 'T', 'ᴜ': 'U', 'ᴠ': 'V', 'ᴡ': 'W', 'x': 'X',
+          'ʏ': 'Y', 'ᴢ': 'Z'
+        };
+        return text.split('').map(char => reverseMap[char] || char).join('');
       }
 
       function generateCode() {
@@ -1250,20 +1844,23 @@
           return 'Add at least 2 colors to generate gradient code';
         }
 
-        const inputText = document.getElementById('input-text').value.trim();
+        let inputText = document.getElementById('input-text').value.trim();
         if (!inputText) {
           return 'Enter text to generate gradient code';
         }
 
-        // Get selected command
+        const sortedStops = [...colorStops].sort((a, b) => a.position - b.position);
         const activeCommand = document.querySelector('.command-switcher button.active');
-        const command = activeCommand ? activeCommand.dataset.command : 'namecolor';
-
-        // Get formatting options - combine all selected
+        const command = activeCommand ? activeCommand.dataset.command : 'none';
         const formatBold = document.getElementById('format-bold').checked;
         const formatItalic = document.getElementById('format-italic').checked;
         const formatUnderline = document.getElementById('format-underline').checked;
         const formatStrikethrough = document.getElementById('format-strikethrough').checked;
+        const formatSmall = document.getElementById('format-small').checked;
+        
+        if (formatSmall) {
+          inputText = toSmallCaps(inputText);
+        }
 
         // Combine all selected formatting symbols
         let formatSymbols = '';
@@ -1272,24 +1869,86 @@
         if (formatUnderline) formatSymbols += '&n';
         if (formatItalic) formatSymbols += '&o';
 
-        // Generate gradient colors - each character gets its own color code
+        // Generate gradient colors - each character gets its own color code (except spaces)
         const textLength = inputText.length;
         let colorOutput = '';
+
+        // Count non-space characters for gradient distribution
+        const nonSpaceChars = inputText.split('').filter(c => c !== ' ').length;
+        let nonSpaceIndex = 0;
 
         // Distribute colors across text characters
         for (let i = 0; i < textLength; i++) {
           const char = inputText[i];
-          const progress = textLength > 1 ? i / (textLength - 1) : 0;
           
-          // Find which color stops to interpolate between
-          const colorIndex = progress * (colorStops.length - 1);
-          const lowerIndex = Math.floor(colorIndex);
-          const upperIndex = Math.min(Math.ceil(colorIndex), colorStops.length - 1);
-          const t = colorIndex - lowerIndex;
+          // Calculate progress based on ALL characters (including spaces) for color interpolation
+          const progress = textLength > 1 ? (i / (textLength - 1)) * 100 : 0;
+          
+          // Handle spaces - apply both color and formatting codes
+          if (char === ' ') {
+            // Find which color stops to interpolate between based on position
+            let lowerIndex = 0;
+            let upperIndex = sortedStops.length - 1;
+            
+            for (let j = 0; j < sortedStops.length - 1; j++) {
+              if (progress >= sortedStops[j].position && progress <= sortedStops[j + 1].position) {
+                lowerIndex = j;
+                upperIndex = j + 1;
+                break;
+              }
+            }
+            
+            // Calculate interpolation factor
+            const lowerPos = sortedStops[lowerIndex].position;
+            const upperPos = sortedStops[upperIndex].position;
+            const range = upperPos - lowerPos;
+            const t = range > 0 ? (progress - lowerPos) / range : 0;
+
+            // Interpolate between colors for the space
+            const lowerColor = sortedStops[lowerIndex];
+            const upperColor = sortedStops[upperIndex];
+            
+            const r = Math.round(lowerColor.r + (upperColor.r - lowerColor.r) * t);
+            const g = Math.round(lowerColor.g + (upperColor.g - lowerColor.g) * t);
+            const b = Math.round(lowerColor.b + (upperColor.b - lowerColor.b) * t);
+
+            // Convert to hex and format as &#rrggbb (lowercase)
+            const hex = rgbToHex(r, g, b).substring(1).toLowerCase();
+            
+            // Add color code + optional formatting + space
+            if (formatSymbols) {
+              colorOutput += `&#${hex}${formatSymbols} `;
+            } else {
+              colorOutput += `&#${hex} `;
+            }
+            continue;
+          }
+          
+          // For non-space characters, calculate progress based on non-space characters only
+          const nonSpaceProgress = nonSpaceChars > 1 ? (nonSpaceIndex / (nonSpaceChars - 1)) * 100 : 0;
+          nonSpaceIndex++;
+          
+          // Find which color stops to interpolate between based on position (using non-space progress)
+          let lowerIndex = 0;
+          let upperIndex = sortedStops.length - 1;
+          
+          for (let j = 0; j < sortedStops.length - 1; j++) {
+            if (nonSpaceProgress >= sortedStops[j].position && nonSpaceProgress <= sortedStops[j + 1].position) {
+              lowerIndex = j;
+              upperIndex = j + 1;
+              break;
+            }
+          }
+          
+          // Calculate interpolation factor
+          const lowerPos = sortedStops[lowerIndex].position;
+          const upperPos = sortedStops[upperIndex].position;
+          const range = upperPos - lowerPos;
+          const t = range > 0 ? (nonSpaceProgress - lowerPos) / range : 0;
 
           // Interpolate between colors
-          const lowerColor = colorStops[lowerIndex];
-          const upperColor = colorStops[upperIndex];
+          const lowerColor = sortedStops[lowerIndex];
+          const upperColor = sortedStops[upperIndex];
           
           const r = Math.round(lowerColor.r + (upperColor.r - lowerColor.r) * t);
           const g = Math.round(lowerColor.g + (upperColor.g - lowerColor.g) * t);
@@ -1307,26 +1966,32 @@
         }
 
         // Build final command
+        if (command === 'none') {
+          return colorOutput;
+        }
         const finalCommand = `/${command} ${colorOutput}`;
 
         return finalCommand;
       }
+
 
       function updateTextPreview() {
         const preview = document.getElementById('text-preview');
         if (!preview) return;
         
         const input = document.getElementById('input-text');
-        const inputText = input ? input.value : '';
+        let inputText = input ? input.value : '';
         
         preview.innerHTML = '';
         
         if (!inputText || inputText.trim() === '') {
-          preview.innerHTML = '<span style="color: var(--muted); opacity: 0.5;">Type here to generate a gradient!</span>';
+          // Don't show placeholder in preview - let the input's native placeholder show through
           return;
         }
         
-        if (!colorStops || colorStops.length < 2) {
+        // Check colorStops - ensure it exists and has at least 2 items
+        // Use typeof check to ensure it's defined
+        if (typeof colorStops === 'undefined' || !Array.isArray(colorStops) || colorStops.length < 2) {
           preview.innerHTML = '<span style="color: var(--muted); opacity: 0.5;">Add at least 2 colors</span>';
           return;
         }
@@ -1336,44 +2001,86 @@
         const formatItalic = document.getElementById('format-italic').checked;
         const formatUnderline = document.getElementById('format-underline').checked;
         const formatStrikethrough = document.getElementById('format-strikethrough').checked;
+        const formatSmall = document.getElementById('format-small').checked;
+        
+        if (formatSmall) {
+          inputText = toSmallCaps(inputText);
+        }
+        
+        // Update input field font to match formatting so cursor aligns correctly
+        if (input) {
+          input.style.fontWeight = formatBold ? 'bold' : '500';
+          input.style.fontStyle = formatItalic ? 'italic' : 'normal';
+        }
 
         const textLength = inputText.length;
         
-        // Distribute colors across text characters - must match input exactly
+        // Sort color stops by position
+        const sortedStops = [...colorStops].sort((a, b) => a.position - b.position);
+        
+        // Count non-space characters for gradient distribution
+        const nonSpaceChars = inputText.split('').filter(c => c !== ' ').length;
+        let nonSpaceIndex = 0;
+        
+        // Simple approach: just create colored spans with formatting, let browser handle spacing
         for (let i = 0; i < textLength; i++) {
           const char = inputText[i];
-          const progress = textLength > 1 ? i / (textLength - 1) : 0;
           
-          // Find which color stops to interpolate between
-          const colorIndex = progress * (colorStops.length - 1);
-          const lowerIndex = Math.floor(colorIndex);
-          const upperIndex = Math.min(Math.ceil(colorIndex), colorStops.length - 1);
-          const t = colorIndex - lowerIndex;
-
-          // Interpolate between colors
-          const lowerColor = colorStops[lowerIndex];
-          const upperColor = colorStops[upperIndex];
+          // Calculate progress based on ALL characters (including spaces) for color interpolation
+          const progress = textLength > 1 ? (i / (textLength - 1)) * 100 : 0;
           
-          const r = Math.round(lowerColor.r + (upperColor.r - lowerColor.r) * t);
-          const g = Math.round(lowerColor.g + (upperColor.g - lowerColor.g) * t);
-          const b = Math.round(lowerColor.b + (upperColor.b - lowerColor.b) * t);
-
-          // Create character span with color - must match input exactly
+          let r, g, b;
+          
+          let lowerIndex = 0, upperIndex = sortedStops.length - 1;
+          let t = 0;
+          
+          if (char === ' ') {
+            for (let j = 0; j < sortedStops.length - 1; j++) {
+              if (progress >= sortedStops[j].position && progress <= sortedStops[j + 1].position) {
+                lowerIndex = j;
+                upperIndex = j + 1;
+                break;
+              }
+            }
+            const range = sortedStops[upperIndex].position - sortedStops[lowerIndex].position;
+            t = range > 0 ? (progress - sortedStops[lowerIndex].position) / range : 0;
+          } else {
+            const nonSpaceProgress = nonSpaceChars > 1 ? (nonSpaceIndex / (nonSpaceChars - 1)) * 100 : 0;
+            nonSpaceIndex++;
+            for (let j = 0; j < sortedStops.length - 1; j++) {
+              if (nonSpaceProgress >= sortedStops[j].position && nonSpaceProgress <= sortedStops[j + 1].position) {
+                lowerIndex = j;
+                upperIndex = j + 1;
+                break;
+              }
+            }
+            const range = sortedStops[upperIndex].position - sortedStops[lowerIndex].position;
+            t = range > 0 ? (nonSpaceProgress - sortedStops[lowerIndex].position) / range : 0;
+          }
+          
+          const lowerColor = sortedStops[lowerIndex];
+          const upperColor = sortedStops[upperIndex];
+          r = Math.max(0, Math.min(255, Math.round(lowerColor.r + (upperColor.r - lowerColor.r) * t)));
+          g = Math.max(0, Math.min(255, Math.round(lowerColor.g + (upperColor.g - lowerColor.g) * t)));
+          b = Math.max(0, Math.min(255, Math.round(lowerColor.b + (upperColor.b - lowerColor.b) * t)));
+          
           const charSpan = document.createElement('span');
           charSpan.className = 'text-preview-char';
           charSpan.textContent = char;
           charSpan.style.color = `rgb(${r}, ${g}, ${b})`;
-          charSpan.style.display = 'inline-block';
-          
-          // Apply formatting
-          if (formatBold) {
-            charSpan.classList.add('bold');
+          charSpan.style.fontWeight = formatBold ? 'bold' : '500';
+          charSpan.style.fontStyle = formatItalic ? 'italic' : 'normal';
+          charSpan.style.fontFamily = '"Minecraft", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+          charSpan.style.imageRendering = 'pixelated';
+          charSpan.style.imageRendering = '-moz-crisp-edges';
+          charSpan.style.imageRendering = 'crisp-edges';
+          if (formatUnderline && formatStrikethrough) {
+            charSpan.style.textDecoration = 'underline line-through';
+          } else if (formatUnderline) {
+            charSpan.style.textDecoration = 'underline';
+          } else if (formatStrikethrough) {
+            charSpan.style.textDecoration = 'line-through';
           }
-          if (formatItalic) charSpan.style.fontStyle = 'italic';
-          if (formatUnderline) charSpan.style.textDecoration = 'underline';
-          if (formatStrikethrough) charSpan.style.textDecoration = 'line-through';
-          if (formatUnderline && formatStrikethrough) charSpan.style.textDecoration = 'underline line-through';
-          
           preview.appendChild(charSpan);
         }
       }
@@ -1493,7 +2200,6 @@
           updateOutput();
         }
 
-        // Square interaction - calculate color directly from square position to match visual
         let isDraggingSquare = false;
         
         const handleSquareMove = (e) => {
@@ -1501,38 +2207,22 @@
           squareX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
           squareY = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
           
-          // Update handle position directly from mouse position
           pickerHandle.style.left = (squareX * 100) + '%';
           pickerHandle.style.top = (squareY * 100) + '%';
           
-          // Calculate RGB directly from square position to match what's displayed
-          // X axis: saturation (0 = white, 1 = pure hue)
-          // Y axis: brightness (0 = full brightness, 1 = black)
           const saturation = squareX;
-          const brightness = 1 - squareY; // 1 at top, 0 at bottom
-          
-          // Get pure hue RGB
+          const brightness = 1 - squareY;
           const pureHueRgb = hslToRgb(currentHue, 100, 50);
+          const finalR = Math.round((255 + (pureHueRgb.r - 255) * saturation) * brightness);
+          const finalG = Math.round((255 + (pureHueRgb.g - 255) * saturation) * brightness);
+          const finalB = Math.round((255 + (pureHueRgb.b - 255) * saturation) * brightness);
           
-          // Interpolate between white and pure hue based on saturation
-          const r = Math.round(255 + (pureHueRgb.r - 255) * saturation);
-          const g = Math.round(255 + (pureHueRgb.g - 255) * saturation);
-          const b = Math.round(255 + (pureHueRgb.b - 255) * saturation);
-          
-          // Apply brightness (darken towards black)
-          const finalR = Math.round(r * brightness);
-          const finalG = Math.round(g * brightness);
-          const finalB = Math.round(b * brightness);
-          
-          // Update color object
           color.r = finalR;
           color.g = finalG;
           color.b = finalB;
           color.hex = rgbToHex(finalR, finalG, finalB);
           
-          // Update HSL values for consistency
           const hsl = rgbToHsl(finalR, finalG, finalB);
-          currentHue = hsl.h;
           currentSaturation = hsl.s / 100;
           currentLightness = hsl.l / 100;
           
@@ -1560,6 +2250,7 @@
           e.preventDefault();
           e.stopPropagation();
           isDraggingSquare = true;
+          isDraggingInPicker = true;
           handleSquareMove(e);
         });
 
@@ -1571,19 +2262,16 @@
         };
 
         const handleSquareMouseUp = () => {
-          isDraggingSquare = false;
+          if (isDraggingSquare) isDraggingSquare = false;
         };
 
         document.addEventListener('mousemove', handleSquareMouseMove);
         document.addEventListener('mouseup', handleSquareMouseUp);
 
-        // Hue slider interaction
         let isDraggingHue = false;
         const handleHueMove = (e) => {
           const rect = pickerHue.getBoundingClientRect();
-          // Calculate relative Y position, constrained to 0-1
           const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-          // Top (y=0) = 0° (red), bottom (y=1) = 360° (back to red, through full spectrum)
           currentHue = Math.max(0, Math.min(360, y * 360));
           updatePickerUI();
           updateColorFromHSL();
@@ -1593,6 +2281,7 @@
           e.preventDefault();
           e.stopPropagation();
           isDraggingHue = true;
+          isDraggingInPicker = true;
           handleHueMove(e);
         });
 
@@ -1604,22 +2293,19 @@
         };
 
         const handleHueMouseUp = () => {
-          isDraggingHue = false;
+          if (isDraggingHue) isDraggingHue = false;
         };
 
         document.addEventListener('mousemove', handleHueMouseMove);
         document.addEventListener('mouseup', handleHueMouseUp);
 
-        // Toggle picker on swatch click - close other pickers first
         colorSwatch.addEventListener('click', (e) => {
           e.stopPropagation();
           e.preventDefault();
           const isCurrentlyActive = customPicker.classList.contains('active');
           
           // Close all pickers first
-          document.querySelectorAll('.custom-color-picker.active').forEach(picker => {
-            picker.classList.remove('active');
-          });
+          closeAllPickers();
           
           // If this picker wasn't active, open it
           if (!isCurrentlyActive) {
@@ -1627,12 +2313,7 @@
           }
         });
 
-        // Close picker when clicking outside
-        document.addEventListener('click', (e) => {
-          if (!customPicker.contains(e.target) && !colorSwatch.contains(e.target)) {
-            customPicker.classList.remove('active');
-          }
-        });
+        // Close picker when clicking outside (handled globally below)
 
         // HEX input handler
         function handleHexInput(input, swatch) {
@@ -1680,10 +2361,27 @@
         removeBtn.addEventListener('click', () => {
           if (colorStops.length > 2) {
             colorStops.splice(index, 1);
+            // Update addedColorIndices stack - remove the index if it's in the stack, and adjust others
+            const indexInStack = addedColorIndices.indexOf(index);
+            if (indexInStack !== -1) {
+              addedColorIndices.splice(indexInStack, 1);
+            }
+            // Adjust all indices in the stack that come after the removed index
+            for (let i = 0; i < addedColorIndices.length; i++) {
+              if (addedColorIndices[i] > index) {
+                addedColorIndices[i]--;
+              }
+            }
+            closeAllPickers(); // Close any open pickers
             renderColorStops();
+            updatePreview();
             updateOutput();
-          } else {
-            alert('You need at least 2 colors for a gradient');
+            updateTextPreview();
+            // Update remove button state
+            const removeColorBtn = document.getElementById('gradient-remove-btn');
+            if (removeColorBtn) {
+              removeColorBtn.disabled = colorStops.length <= 2;
+            }
           }
         });
 
@@ -1702,53 +2400,196 @@
         if (hexInput) {
           hexInput.value = color.hex.substring(1).toUpperCase();
         }
+        
+        // Update gradient color blob
+        const stopIndex = stop.dataset.index;
+        const preview = document.getElementById('gradient-preview');
+        if (preview) {
+          const colorBlob = preview.querySelector(`.gradient-color-blob[data-index="${stopIndex}"]`);
+          if (colorBlob) {
+            colorBlob.style.background = color.hex;
+          }
+        }
       }
 
       function renderColorStops() {
         const container = document.getElementById('color-stops');
+        if (!container) return;
         container.innerHTML = '';
-        colorStops.forEach((color, index) => {
-          const stop = createColorStop(index, color);
+        
+        // Sort by position to maintain order matching gradient bar
+        const sortedStops = [...colorStops].sort((a, b) => a.position - b.position);
+        
+        sortedStops.forEach((color, sortedIndex) => {
+          // Find original index in colorStops array
+          const originalIndex = colorStops.findIndex(s => s === color);
+          const stop = createColorStop(originalIndex, color);
           container.appendChild(stop);
         });
       }
 
-      // Add color button
-      function initAddColorButton() {
-        const addColorBtn = document.getElementById('add-color-btn');
-        if (!addColorBtn) {
-          console.error('Add color button not found');
-          return;
+      // Global function to update remove button state
+      function updateRemoveButtonState() {
+        const removeColorBtn = document.getElementById('gradient-remove-btn');
+        if (removeColorBtn) {
+          // Disable if we have 2 or fewer colors (minimum for gradient)
+          removeColorBtn.disabled = colorStops.length <= 2;
         }
+      }
+
+      // Remove color button
+      function initRemoveColorButton() {
+        const removeColorBtn = document.getElementById('gradient-remove-btn');
+        if (!removeColorBtn) return;
         
-        // Remove any existing listeners
-        const newBtn = addColorBtn.cloneNode(true);
-        addColorBtn.parentNode.replaceChild(newBtn, addColorBtn);
+        // Remove any existing event listeners
+        const newRemoveBtn = removeColorBtn.cloneNode(true);
+        removeColorBtn.parentNode.replaceChild(newRemoveBtn, removeColorBtn);
         
-        newBtn.addEventListener('click', (e) => {
+        // Get reference to the new button
+        const btn = document.getElementById('gradient-remove-btn');
+        
+        btn.addEventListener('click', function(e) {
           e.preventDefault();
           e.stopPropagation();
+          
+          if (colorStops.length > 2) {
+            // Clean up the stack - remove any invalid indices
+            addedColorIndices = addedColorIndices.filter(idx => idx >= 0 && idx < colorStops.length);
+            
+            if (addedColorIndices.length > 0) {
+              // Get the most recently added color index (last in stack)
+              const indexToRemove = addedColorIndices.pop();
+              
+              // Adjust all indices in the stack that come after the removed index
+              for (let i = 0; i < addedColorIndices.length; i++) {
+                if (addedColorIndices[i] > indexToRemove) {
+                  addedColorIndices[i]--;
+                }
+              }
+              
+              // Remove the color at that index
+              if (indexToRemove >= 0 && indexToRemove < colorStops.length) {
+                colorStops.splice(indexToRemove, 1);
+              }
+            } else {
+              // Fallback: if stack is empty, remove the last color
+              colorStops.pop();
+            }
+            
+            closeAllPickers(); // Close any open pickers
+            renderColorStops();
+            updatePreview();
+            updateOutput();
+            updateTextPreview();
+            
+            // Update button state
+            updateRemoveButtonState();
+          }
+        });
+        
+        // Initialize button state
+        updateRemoveButtonState();
+      }
+
+      // Add color button
+      function initAddColorButton() {
+        const addColorBtn = document.getElementById('gradient-add-btn');
+        if (!addColorBtn) return;
+        
+        addColorBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          closeAllPickers(); // Close any open pickers
           
             if (colorStops.length === 0) {
               // If no colors, add default colors
               colorStops = [
-                { r: 244, g: 84, b: 84, hex: '#f45454' },
-                { r: 244, g: 84, b: 84, hex: '#f45454' }
+                { r: 155, g: 255, b: 0, hex: '#9BFF00', position: 0 },
+                { r: 0, g: 207, b: 255, hex: '#00CFFF', position: 100 }
               ];
           } else {
+            // Find the largest gap between color stops and add color in the middle
+            const sortedStops = [...colorStops].sort((a, b) => a.position - b.position);
+            let maxGap = 0;
+            let insertIndex = sortedStops.length;
+            let newPosition = 100;
+            
+            // Check gap at the beginning
+            if (sortedStops[0].position > 0) {
+              const gap = sortedStops[0].position;
+              if (gap > maxGap) {
+                maxGap = gap;
+                newPosition = gap / 2;
+                insertIndex = 0;
+              }
+            }
+            
+            // Check gaps between stops
+            for (let i = 0; i < sortedStops.length - 1; i++) {
+              const gap = sortedStops[i + 1].position - sortedStops[i].position;
+              if (gap > maxGap) {
+                maxGap = gap;
+                newPosition = sortedStops[i].position + (gap / 2);
+                insertIndex = i + 1;
+              }
+            }
+            
+            // Check gap at the end
+            if (sortedStops[sortedStops.length - 1].position < 100) {
+              const gap = 100 - sortedStops[sortedStops.length - 1].position;
+              if (gap > maxGap) {
+                maxGap = gap;
+                newPosition = sortedStops[sortedStops.length - 1].position + (gap / 2);
+                insertIndex = sortedStops.length;
+              }
+            }
+            
+            // Find the original index of the stop at insertIndex
+            let originalIndex = colorStops.length;
+            if (insertIndex < sortedStops.length) {
+              const targetStop = sortedStops[insertIndex];
+              originalIndex = colorStops.findIndex(s => s === targetStop);
+            }
+            
             const lastColor = colorStops[colorStops.length - 1];
             const newColor = {
               r: Math.min(255, lastColor.r + 30),
               g: Math.min(255, lastColor.g + 30),
               b: Math.min(255, lastColor.b + 30),
-              hex: ''
+              hex: '',
+              position: newPosition
             };
             newColor.hex = rgbToHex(newColor.r, newColor.g, newColor.b);
-            colorStops.push(newColor);
+            
+            // Check length BEFORE inserting to know if we're starting from base 2 colors
+            const wasAtBaseColors = colorStops.length === 2;
+            
+            // Insert at the correct position to maintain order
+            colorStops.splice(originalIndex, 0, newColor);
+            
+            // If we were at base 2 colors, clear the stack (fresh start)
+            if (wasAtBaseColors) {
+              addedColorIndices = [];
+            } else {
+              // Otherwise, clean up invalid indices
+              addedColorIndices = addedColorIndices.filter(idx => idx >= 0 && idx < colorStops.length);
+              // Adjust indices in stack that come after the insertion point
+              for (let i = 0; i < addedColorIndices.length; i++) {
+                if (addedColorIndices[i] >= originalIndex) {
+                  addedColorIndices[i]++;
+                }
+              }
+            }
+            // Track the index of the most recently added color (push to stack)
+            addedColorIndices.push(originalIndex);
           }
           renderColorStops();
+          updatePreview();
           updateOutput();
           updateTextPreview();
+          updateRemoveButtonState();
         });
       }
 
@@ -1818,19 +2659,107 @@
         }
       }
 
+      // Store the last typed character/data before conversion (for small font)
+      let lastTypedData = null;
+
       // Text input and formatting options
-      document.getElementById('input-text').addEventListener('input', () => {
+      // Use beforeinput to capture the character/data before it's converted
+      document.getElementById('input-text').addEventListener('beforeinput', (e) => {
+        const formatSmall = document.getElementById('format-small').checked;
+        if (formatSmall && (e.inputType === 'insertText' || e.inputType === 'insertCompositionText')) {
+          // Store the character/data that's about to be inserted (before conversion)
+          lastTypedData = e.data;
+        } else if (formatSmall && e.inputType === 'insertFromPaste') {
+          // For paste, we'll handle it in the input event
+          lastTypedData = null; // Will use fallback
+        }
+      });
+
+      document.getElementById('input-text').addEventListener('input', (e) => {
+        const formatSmall = document.getElementById('format-small').checked;
+        const input = e.target;
+        const cursorPos = input.selectionStart;
+        const oldValue = input.value;
+        
+        if (formatSmall) {
+          // When small font is enabled, we need to:
+          // 1. Update originalText with the actual character/data typed (stored in lastTypedData)
+          // 2. Convert the entire text to small caps
+          
+          const oldLength = oldValue.length;
+          const newLength = input.value.length;
+          
+          if (newLength < oldLength) {
+            // Text was deleted
+            const deleteStart = Math.min(cursorPos, oldLength - 1);
+            const deleteCount = oldLength - newLength;
+            originalText = originalText.slice(0, deleteStart) + originalText.slice(deleteStart + deleteCount);
+          } else if (newLength > oldLength && lastTypedData !== null) {
+            // Text was added - use the stored original character/data
+            const insertPos = Math.min(cursorPos - lastTypedData.length, oldLength);
+            originalText = originalText.slice(0, insertPos) + lastTypedData + originalText.slice(insertPos);
+            lastTypedData = null; // Reset after use
+          } else if (newLength === oldLength && lastTypedData !== null && lastTypedData.length === 1) {
+            // Single character was replaced
+            const replacePos = Math.min(cursorPos - 1, oldLength - 1);
+            if (replacePos >= 0) {
+              originalText = originalText.slice(0, replacePos) + lastTypedData + originalText.slice(replacePos + 1);
+            }
+            lastTypedData = null; // Reset after use
+          } else {
+            // Fallback: if we don't have lastTypedData or it's a complex operation (paste, etc.)
+            // Try to reconstruct from small caps (best effort)
+            originalText = fromSmallCaps(input.value);
+          }
+          
+          // Convert originalText to small caps for display
+          const convertedValue = toSmallCaps(originalText);
+          if (input.value !== convertedValue) {
+            const newCursorPos = Math.min(cursorPos, convertedValue.length);
+            input.value = convertedValue;
+            // Restore cursor position
+            input.setSelectionRange(newCursorPos, newCursorPos);
+          }
+        } else {
+          // When small font is disabled, just update originalText directly
+          originalText = input.value;
+        }
+        
         updateCharCounter();
         updateOutput();
         updateTextPreview();
       });
       document.getElementById('format-bold').addEventListener('change', () => {
-        updateOutput();
-        updateTextPreview();
+        // Wait for fonts to be ready, then update
+        if (document.fonts && document.fonts.ready) {
+          document.fonts.ready.then(() => {
+            requestAnimationFrame(() => {
+              updateOutput();
+              updateTextPreview();
+            });
+          });
+        } else {
+          requestAnimationFrame(() => {
+            updateOutput();
+            updateTextPreview();
+          });
+        }
       });
       document.getElementById('format-italic').addEventListener('change', () => {
-        updateOutput();
-        updateTextPreview();
+        // Wait for fonts to be ready, then update
+        if (document.fonts && document.fonts.ready) {
+          document.fonts.ready.then(() => {
+            requestAnimationFrame(() => {
+              updateOutput();
+              updateTextPreview();
+            });
+          });
+        } else {
+          requestAnimationFrame(() => {
+            updateOutput();
+            updateTextPreview();
+          });
+        }
       });
       document.getElementById('format-underline').addEventListener('change', () => {
         updateOutput();
@@ -1840,14 +2769,130 @@
         updateOutput();
         updateTextPreview();
       });
-
-      // Initialize - wait for DOM to be ready
-      function initialize() {
-        renderColorStops();
-        updateCharCounter();
+      document.getElementById('format-small').addEventListener('change', () => {
+        const input = document.getElementById('input-text');
+        if (input) {
+          const formatSmall = document.getElementById('format-small').checked;
+          if (formatSmall) {
+            // When enabling small font: save current text as original, then convert
+            originalText = input.value;
+            input.value = toSmallCaps(originalText);
+          } else {
+            // When disabling small font: restore from originalText
+            input.value = originalText;
+          }
+        }
         updateOutput();
         updateTextPreview();
+      });
+
+
+      // Initialize - wait for DOM to be ready
+      // Gradient preview click handler
+      function initGradientPreviewClick() {
+        const preview = document.getElementById('gradient-preview');
+        if (!preview) return;
+        
+        preview.addEventListener('click', (e) => {
+          if (colorStops.length === 0) return;
+          
+          const rect = preview.getBoundingClientRect();
+          const clickX = e.clientX - rect.left;
+          const clickPercent = (clickX / rect.width) * 100;
+          
+          // Find the closest color stop
+          let closestIndex = 0;
+          let minDistance = Infinity;
+          
+          colorStops.forEach((stop, index) => {
+            const distance = Math.abs(clickPercent - stop.position);
+            if (distance < minDistance) {
+              minDistance = distance;
+              closestIndex = index;
+            }
+          });
+          
+          // Find and open the color picker for this color stop
+          const colorStopElement = document.querySelector(`.color-stop[data-index="${closestIndex}"]`);
+          if (colorStopElement) {
+            const colorSwatch = colorStopElement.querySelector('.color-swatch');
+            if (colorSwatch) {
+              // Close all pickers first
+              closeAllPickers();
+              
+              // Open this picker
+              const customPicker = colorStopElement.querySelector('.custom-color-picker');
+              if (customPicker) {
+                // Move to body if needed
+                if (customPicker.parentElement !== document.body) {
+                  if (!customPicker.dataset.originalParent) {
+                    customPicker.dataset.originalParent = 'color-stops';
+                  }
+                  document.body.appendChild(customPicker);
+                }
+                const preview = document.getElementById('gradient-preview');
+                const previewRect = preview.getBoundingClientRect();
+                customPicker.style.position = 'fixed';
+                customPicker.style.display = 'block';
+                customPicker.style.visibility = 'visible';
+                const pickerWidth = 280;
+                const leftPos = previewRect.left + (clickPercent / 100) * previewRect.width - pickerWidth / 2;
+                customPicker.style.left = Math.max(8, Math.min(window.innerWidth - pickerWidth - 8, leftPos)) + 'px';
+                customPicker.style.top = (previewRect.bottom + 8) + 'px';
+                customPicker.style.zIndex = '10000';
+                customPicker.classList.add('active');
+              }
+            }
+          }
+        });
+      }
+
+      function initialize() {
+        // Ensure colorStops is initialized before anything else
+        if (!colorStops || colorStops.length < 2) {
+          colorStops = [
+            { r: 155, g: 255, b: 0, hex: '#9BFF00', position: 0 },
+            { r: 0, g: 207, b: 255, hex: '#00CFFF', position: 100 }
+          ];
+        }
+        renderColorStops();
+        updateCharCounter();
+        // Update gradient preview immediately (doesn't depend on fonts)
+        updatePreview();
+        
+        // Wait for fonts to load before updating preview
+        function updateAfterFontsLoad() {
+          requestAnimationFrame(() => {
+            updateOutput();
+            updateTextPreview();
+          });
+        }
+        
+        // Always wait for fonts before initial render
+        if (document.fonts && document.fonts.ready) {
+          document.fonts.ready.then(() => {
+            // Double-check that fonts are actually loaded
+            if (document.fonts.check('18px Minecraft', 'normal') &&
+                document.fonts.check('18px Minecraft', 'bold') &&
+                document.fonts.check('18px Minecraft', 'italic') &&
+                document.fonts.check('18px Minecraft', 'bold italic')) {
+              updateAfterFontsLoad();
+            } else {
+              // Fonts not fully loaded yet, wait a bit more
+              setTimeout(() => {
+                updateAfterFontsLoad();
+              }, 100);
+            }
+          });
+        } else {
+          // Fallback: wait a bit for fonts to load
+          setTimeout(() => {
+            updateAfterFontsLoad();
+          }, 300);
+        }
         initAddColorButton();
+        initRemoveColorButton();
+        initGradientPreviewClick();
       }
 
       if (document.readyState === 'loading') {
