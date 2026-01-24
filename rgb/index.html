@@ -1129,7 +1129,7 @@
       <div class="container">
         <div class="topbar">
           <a class="brand" href="../?play=1" aria-label="LifeSteal SMP - Home" id="brand-link">
-            <img class="logo" src="../logo.png" alt="LifeSteal SMP - Competitive Minecraft Server Logo" width="34" height="34" loading="eager" decoding="async" fetchpriority="high" onerror="this.style.display='none'" />
+            <img class="logo" src="../logo.png" alt="LifeSteal SMP - Competitive Minecraft Server Logo" width="34" height="34" loading="eager" decoding="async" fetchpriority="high" />
             <span class="brandtext">
               <span class="brandtitle">LifeSteal SMP</span>
               <span class="brandsub">Java &amp; Bedrock</span>
@@ -1481,6 +1481,14 @@
         }
       })();
 
+      // Handle logo image error (CSP-compliant - no inline handlers)
+      const logo = document.querySelector('.logo');
+      if (logo) {
+        logo.addEventListener('error', function() {
+          this.style.display = 'none';
+        });
+      }
+      
       // RGB Gradient Generator
       let colorStops = [
         { r: 155, g: 255, b: 0, hex: '#9BFF00', position: 0 },
