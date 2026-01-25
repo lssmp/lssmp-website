@@ -20,6 +20,7 @@
     <link rel="canonical" href="https://www.lifestealsmp.com/" />
     <link rel="icon" href="./favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="./logo.png" />
+    <link rel="sitemap" type="application/xml" href="./sitemap.xml" />
     <link rel="stylesheet" href="./css/common.css" />
 
     <!-- Open Graph / Facebook -->
@@ -139,6 +140,25 @@
         object-fit: cover;
         filter: brightness(0.85) contrast(1.05) saturate(1.05);
         background: var(--bg);
+      }
+      
+      /* Mobile: Reduce video height and move cards higher */
+      @media (max-width: 820px) {
+        .hero {
+          height: 25vh;
+          min-height: 180px;
+          overflow: hidden;
+        }
+        
+        .hero video {
+          object-position: center 50%; /* Crop more from top, focus on lower center */
+          height: 150%; /* Make video taller so we can crop more */
+          top: -25%; /* Shift up to crop from top */
+        }
+        
+        .page-content main {
+          margin-top: -100px; /* Move cards higher (less negative margin) */
+        }
       }
       
       /* Prevent layout shift while video loads */

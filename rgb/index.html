@@ -9,8 +9,24 @@
     <meta name="robots" content="index,follow" />
     <meta name="theme-color" content="#0c0c0c" />
     <meta name="color-scheme" content="dark" />
-    <meta name="description" content="Generate RGB gradients for Minecraft. Create beautiful color transitions for text, signs, and more." />
+    <meta name="description" content="Generate RGB gradients for Minecraft. Create beautiful color transitions for text, signs, and more. Free Minecraft RGB color gradient generator tool." />
     <link rel="canonical" href="https://www.lifestealsmp.com/rgb/" />
+    <link rel="sitemap" type="application/xml" href="../sitemap.xml" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.lifestealsmp.com/rgb/" />
+    <meta property="og:title" content="RGB Gradient Generator | LifeSteal SMP" />
+    <meta property="og:description" content="Generate RGB gradients for Minecraft. Create beautiful color transitions for text, signs, and more. Free Minecraft RGB color gradient generator tool." />
+    <meta property="og:image" content="https://www.lifestealsmp.com/logo.png" />
+    <meta property="og:site_name" content="LifeSteal SMP" />
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:url" content="https://www.lifestealsmp.com/rgb/" />
+    <meta name="twitter:title" content="RGB Gradient Generator | LifeSteal SMP" />
+    <meta name="twitter:description" content="Generate RGB gradients for Minecraft. Create beautiful color transitions for text, signs, and more. Free Minecraft RGB color gradient generator tool." />
+    <meta name="twitter:image" content="https://www.lifestealsmp.com/logo.png" />
     <link rel="icon" href="../favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="../logo.png" />
     <link rel="stylesheet" href="../css/common.css" />
@@ -646,6 +662,25 @@
         flex: 0.9;
         min-width: 0;
       }
+      
+      /* Mobile: Make switcher full width and move small font below */
+      @media (max-width: 820px) {
+        .command-switcher-row {
+          flex-direction: column;
+          align-items: stretch;
+          gap: 12px;
+        }
+        
+        .command-switcher-wrapper {
+          flex: 1;
+          width: 100%;
+        }
+        
+        .small-font-option {
+          width: 100%;
+          justify-content: flex-start;
+        }
+      }
 
       .command-switcher {
         display: flex;
@@ -1198,6 +1233,16 @@
       let preventClickClose = false;
       let draggingPickerIndex = null;
       let lastMouseDownTime = 0;
+      
+      // Helper function to get coordinates from mouse or touch events
+      function getEventCoordinates(e) {
+        if (e.touches && e.touches.length > 0) {
+          return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
+        } else if (e.changedTouches && e.changedTouches.length > 0) {
+          return { clientX: e.changedTouches[0].clientX, clientY: e.changedTouches[0].clientY };
+        }
+        return { clientX: e.clientX, clientY: e.clientY };
+      }
 
       // SINGLE mouseup handler
       document.addEventListener('mouseup', (e) => {
@@ -1422,9 +1467,37 @@
                 const pickerWidth = 280;
                 const leftPos = blobRect.left + blobRect.width / 2 - pickerWidth / 2;
                 picker.style.left = Math.max(8, Math.min(window.innerWidth - pickerWidth - 8, leftPos)) + 'px';
-                picker.style.top = (blobRect.bottom + 8) + 'px';
+                
+                // Get actual picker height after it's displayed
+                const pickerHeight = picker.offsetHeight || 200;
+                
+                // Check if picker fits below, if not position above
+                const spaceBelow = window.innerHeight - blobRect.bottom - 8;
+                const spaceAbove = blobRect.top - 8;
+                
+                if (spaceBelow >= pickerHeight || spaceBelow >= spaceAbove) {
+                  // Position below
+                  picker.style.top = (blobRect.bottom + 8) + 'px';
+                } else {
+                  // Position above
+                  picker.style.top = (blobRect.top - pickerHeight - 8) + 'px';
+                }
+                
                 picker.style.zIndex = '10000';
                 picker.classList.add('active');
+                
+                // Re-check position after render to ensure it fits
+                requestAnimationFrame(() => {
+                  const actualHeight = picker.offsetHeight;
+                  const currentTop = parseFloat(picker.style.top);
+                  const spaceBelowNow = window.innerHeight - blobRect.bottom - 8;
+                  const spaceAboveNow = blobRect.top - 8;
+                  
+                  if (currentTop + actualHeight > window.innerHeight && spaceAboveNow >= actualHeight) {
+                    // Doesn't fit below, move above
+                    picker.style.top = (blobRect.top - actualHeight - 8) + 'px';
+                  }
+                });
               }
             });
             
@@ -1441,7 +1514,7 @@
             let cachedColorBlob = null;
             let previewWidth = 0;
             
-            indicator.addEventListener('mousedown', (e) => {
+            const startDrag = (e) => {
               e.stopPropagation();
               e.preventDefault();
               
@@ -1451,10 +1524,11 @@
                 activeElement.blur();
               }
               
+              const coords = getEventCoordinates(e);
               isDragging = true;
               isDraggingAny = true; // Global flag to prevent preview recreation
               hasDragged = false;
-              startX = e.clientX;
+              startX = coords.clientX;
               startPosition = stop.position;
               indicator.style.cursor = 'grabbing';
               closeAllPickers();
@@ -1470,6 +1544,8 @@
               // Add event listeners only when dragging starts (prevents accumulation)
               document.addEventListener('mousemove', handleMouseMove);
               document.addEventListener('mouseup', handleMouseUp);
+              document.addEventListener('touchmove', handleMouseMove, { passive: false });
+              document.addEventListener('touchend', handleMouseUp);
               
               // Prevent keyboard input during drag
               keyboardHandler = (e) => {
@@ -1481,7 +1557,10 @@
               document.addEventListener('keydown', keyboardHandler, true);
               document.addEventListener('keyup', keyboardHandler, true);
               document.addEventListener('keypress', keyboardHandler, true);
-            });
+            };
+            
+            indicator.addEventListener('mousedown', startDrag);
+            indicator.addEventListener('touchstart', startDrag, { passive: false });
             
             indicator.addEventListener('click', (e) => {
               e.stopPropagation();
@@ -1495,8 +1574,9 @@
               
               e.preventDefault();
               
+              const coords = getEventCoordinates(e);
               // Use cached preview width (no expensive getBoundingClientRect on every move)
-              const deltaX = e.clientX - startX;
+              const deltaX = coords.clientX - startX;
               
               // Only consider it a drag if moved more than 3px
               if (Math.abs(deltaX) > 3) {
@@ -1580,9 +1660,11 @@
                   keyboardHandler = null;
                 }
                 
-                // Remove mouse event listeners to prevent accumulation
+                // Remove mouse and touch event listeners to prevent accumulation
                 document.removeEventListener('mousemove', handleMouseMove);
                 document.removeEventListener('mouseup', handleMouseUp);
+                document.removeEventListener('touchmove', handleMouseMove);
+                document.removeEventListener('touchend', handleMouseUp);
               }
             };
             
@@ -1985,8 +2067,9 @@
         const handleSquareMove = (e) => {
           // Use cached rect if available (set at drag start)
           const rect = squareRectCache || pickerSquare.getBoundingClientRect();
-          squareX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-          squareY = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+          const coords = getEventCoordinates(e);
+          squareX = Math.max(0, Math.min(1, (coords.clientX - rect.left) / rect.width));
+          squareY = Math.max(0, Math.min(1, (coords.clientY - rect.top) / rect.height));
           
           // Update handle position immediately for visual feedback
           pickerHandle.style.left = (squareX * 100) + '%';
@@ -2032,7 +2115,7 @@
           }
         };
 
-        pickerSquare.addEventListener('mousedown', (e) => {
+        const startSquareDrag = (e) => {
           e.preventDefault();
           e.stopPropagation();
           e.stopImmediatePropagation();
@@ -2052,7 +2135,10 @@
           isDraggingSquare = true;
           draggingPickerIndex = index;
           handleSquareMove(e);
-        });
+        };
+        
+        pickerSquare.addEventListener('mousedown', startSquareDrag);
+        pickerSquare.addEventListener('touchstart', startSquareDrag, { passive: false });
 
         const handleSquareMouseMove = (e) => {
           if (isDraggingSquare) {
@@ -2097,9 +2183,11 @@
           const oldListeners = colorPickerListeners.get(index);
           if (oldListeners.squareMove) {
             document.removeEventListener('mousemove', oldListeners.squareMove);
+            document.removeEventListener('touchmove', oldListeners.squareMove);
           }
           if (oldListeners.squareUp) {
             document.removeEventListener('mouseup', oldListeners.squareUp);
+            document.removeEventListener('touchend', oldListeners.squareUp);
           }
         } else if (draggingPickerIndex === index) {
         }
@@ -2113,6 +2201,8 @@
         
         document.addEventListener('mousemove', handleSquareMouseMove);
         document.addEventListener('mouseup', handleSquareMouseUp);
+        document.addEventListener('touchmove', handleSquareMouseMove, { passive: false });
+        document.addEventListener('touchend', handleSquareMouseUp);
         
 
         let isDraggingHue = false;
@@ -2123,7 +2213,8 @@
         const handleHueMove = (e) => {
           // Use cached rect if available (set at drag start)
           const rect = hueRectCache || pickerHue.getBoundingClientRect();
-          const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+          const coords = getEventCoordinates(e);
+          const y = Math.max(0, Math.min(1, (coords.clientY - rect.top) / rect.height));
           currentHue = Math.max(0, Math.min(360, y * 360));
           
           // Update handle position immediately for visual feedback
@@ -2140,7 +2231,7 @@
           }
         };
 
-        pickerHue.addEventListener('mousedown', (e) => {
+        const startHueDrag = (e) => {
           e.preventDefault();
           e.stopPropagation();
           e.stopImmediatePropagation();
@@ -2160,7 +2251,10 @@
           isDraggingHue = true;
           draggingPickerIndex = index;
           handleHueMove(e);
-        });
+        };
+        
+        pickerHue.addEventListener('mousedown', startHueDrag);
+        pickerHue.addEventListener('touchstart', startHueDrag, { passive: false });
 
         const handleHueMouseMove = (e) => {
           if (isDraggingHue) {
@@ -2205,9 +2299,11 @@
           const oldListeners = colorPickerListeners.get(index);
           if (oldListeners.hueMove) {
             document.removeEventListener('mousemove', oldListeners.hueMove);
+            document.removeEventListener('touchmove', oldListeners.hueMove);
           }
           if (oldListeners.hueUp) {
             document.removeEventListener('mouseup', oldListeners.hueUp);
+            document.removeEventListener('touchend', oldListeners.hueUp);
           }
         } else if (draggingPickerIndex === index) {
         }
@@ -2221,6 +2317,8 @@
         
         document.addEventListener('mousemove', handleHueMouseMove);
         document.addEventListener('mouseup', handleHueMouseUp);
+        document.addEventListener('touchmove', handleHueMouseMove, { passive: false });
+        document.addEventListener('touchend', handleHueMouseUp);
         
 
         // REMOVED: Don't prevent click propagation - let the global handler check if click is inside picker
@@ -2364,15 +2462,19 @@
             if (!currentIndices.has(index)) {
               if (listeners.squareMove) {
                 document.removeEventListener('mousemove', listeners.squareMove);
+                document.removeEventListener('touchmove', listeners.squareMove);
               }
               if (listeners.squareUp) {
                 document.removeEventListener('mouseup', listeners.squareUp);
+                document.removeEventListener('touchend', listeners.squareUp);
               }
               if (listeners.hueMove) {
                 document.removeEventListener('mousemove', listeners.hueMove);
+                document.removeEventListener('touchmove', listeners.hueMove);
               }
               if (listeners.hueUp) {
                 document.removeEventListener('mouseup', listeners.hueUp);
+                document.removeEventListener('touchend', listeners.hueUp);
               }
               colorPickerListeners.delete(index);
             }
@@ -2974,9 +3076,37 @@
                 const pickerWidth = 280;
                 const leftPos = previewRect.left + (clickPercent / 100) * previewRect.width - pickerWidth / 2;
                 customPicker.style.left = Math.max(8, Math.min(window.innerWidth - pickerWidth - 8, leftPos)) + 'px';
-                customPicker.style.top = (previewRect.bottom + 8) + 'px';
+                
+                // Get actual picker height after it's displayed
+                const pickerHeight = customPicker.offsetHeight || 200;
+                
+                // Check if picker fits below, if not position above
+                const spaceBelow = window.innerHeight - previewRect.bottom - 8;
+                const spaceAbove = previewRect.top - 8;
+                
+                if (spaceBelow >= pickerHeight || spaceBelow >= spaceAbove) {
+                  // Position below
+                  customPicker.style.top = (previewRect.bottom + 8) + 'px';
+                } else {
+                  // Position above
+                  customPicker.style.top = (previewRect.top - pickerHeight - 8) + 'px';
+                }
+                
                 customPicker.style.zIndex = '10000';
                 customPicker.classList.add('active');
+                
+                // Re-check position after render to ensure it fits
+                requestAnimationFrame(() => {
+                  const actualHeight = customPicker.offsetHeight;
+                  const currentTop = parseFloat(customPicker.style.top);
+                  const spaceBelowNow = window.innerHeight - previewRect.bottom - 8;
+                  const spaceAboveNow = previewRect.top - 8;
+                  
+                  if (currentTop + actualHeight > window.innerHeight && spaceAboveNow >= actualHeight) {
+                    // Doesn't fit below, move above
+                    customPicker.style.top = (previewRect.top - actualHeight - 8) + 'px';
+                  }
+                });
               }
             }
           }
@@ -3120,6 +3250,45 @@
       } else {
         initialize();
       }
+    </script>
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "RGB Gradient Generator | LifeSteal SMP",
+      "description": "Generate RGB gradients for Minecraft. Create beautiful color transitions for text, signs, and more. Free Minecraft RGB color gradient generator tool.",
+      "url": "https://www.lifestealsmp.com/rgb/",
+      "applicationCategory": "UtilityApplication",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "LifeSteal SMP",
+        "url": "https://www.lifestealsmp.com/"
+      },
+      "breadcrumb": {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": "https://www.lifestealsmp.com/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "RGB Gradient Generator",
+            "item": "https://www.lifestealsmp.com/rgb/"
+          }
+        ]
+      }
+    }
     </script>
   </body>
 </html>

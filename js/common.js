@@ -144,15 +144,18 @@ async function loadPlayerCount(retries = MAX_RETRIES) {
  */
 async function loadDiscordMembers(retries = MAX_RETRIES) {
   const el = document.getElementById("discordcount");
-  if (!el) return;
+  const sidebarEl = document.getElementById("sidebar-discordcount");
+  if (!el && !sidebarEl) return;
 
   const cached = getCached("ls_discordcount_v1", CACHE_TIMEOUT_MS);
   if (cached && cached.text) {
-    el.textContent = cached.text;
+    if (el) el.textContent = cached.text;
+    if (sidebarEl) sidebarEl.textContent = cached.text;
     return;
   }
 
-  el.textContent = "Loading...";
+  if (el) el.textContent = "Loading...";
+  if (sidebarEl) sidebarEl.textContent = "Loading...";
 
   try {
     const controller = new AbortController();
@@ -169,11 +172,15 @@ async function loadDiscordMembers(retries = MAX_RETRIES) {
     const data = await res.json();
 
     if (data && typeof data.approximate_member_count === "number") {
-      el.textContent = data.approximate_member_count.toLocaleString() + " members";
-      setCached("ls_discordcount_v1", { text: el.textContent });
+      const countText = data.approximate_member_count.toLocaleString() + " members";
+      if (el) el.textContent = countText;
+      if (sidebarEl) sidebarEl.textContent = countText;
+      setCached("ls_discordcount_v1", { text: countText });
     } else {
-      el.textContent = "Discord";
-      setCached("ls_discordcount_v1", { text: el.textContent });
+      const fallbackText = "Discord";
+      if (el) el.textContent = fallbackText;
+      if (sidebarEl) sidebarEl.textContent = fallbackText;
+      setCached("ls_discordcount_v1", { text: fallbackText });
     }
   } catch (err) {
     clearTimeout(timeoutId);
@@ -185,9 +192,12 @@ async function loadDiscordMembers(retries = MAX_RETRIES) {
     // Fallback to stale cache
     const stale = getStaleCache("ls_discordcount_v1");
     if (stale && stale.text) {
-      el.textContent = stale.text;
+      if (el) el.textContent = stale.text;
+      if (sidebarEl) sidebarEl.textContent = stale.text;
     } else {
-      el.textContent = "Discord";
+      const fallbackText = "Discord";
+      if (el) el.textContent = fallbackText;
+      if (sidebarEl) sidebarEl.textContent = fallbackText;
     }
   }
 }
@@ -254,12 +264,20 @@ function renderNavbar() {
     { id: 'realm', label: 'Realm', href: `${basePath}realm/`, title: 'Join Bedrock Realm' },
     { id: 'vote', label: 'Vote', href: `${basePath}vote/`, title: 'Vote for LifeSteal SMP' },
     { id: 'rgb', label: 'RGB', href: `${basePath}rgb/`, title: 'RGB Gradient Generator' },
-    { id: 'discord', label: 'Discord', href: 'https://discord.gg/lifestealsmp', title: 'Join LifeSteal SMP Discord Server', external: true }
+    { id: 'discord', label: 'Discord', href: 'https://discord.gg/lifestealsmp', title: 'Join LifeSteal SMP Discord Server', external: true },
+    { id: 'store', label: 'Store', href: 'https://store.lifestealsmp.com', title: 'LifeSteal SMP Store', external: true, mobileOnly: true }
   ];
   
   // Generate navigation links HTML
   const navLinksHTML = navLinks.map(link => {
+    // Skip mobile-only links on desktop (they'll be shown in nav-right)
+    if (link.mobileOnly) {
+      const externalIcon = link.external ? '<svg class="external-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>' : '';
+      return `<a href="${link.href}" ${link.title ? `title="${link.title}"` : ''} class="mobile-only" ${link.external ? 'target="_blank" rel="noreferrer noopener"' : ''}>${link.label}${externalIcon}</a>`;
+    }
+    
     const isActive = link.id === currentPage;
+    const externalIcon = link.external ? '<svg class="external-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>' : '';
     const attrs = [
       `href="${link.href}"`,
       link.title ? `title="${link.title}"` : '',
@@ -267,7 +285,7 @@ function renderNavbar() {
       link.external ? 'target="_blank" rel="noreferrer noopener"' : ''
     ].filter(Boolean).join(' ');
     
-    return `<a ${attrs}>${link.label}</a>`;
+    return `<a ${attrs}>${link.label}${externalIcon}</a>`;
   }).join('\n            ');
   
   // Generate navbar HTML
@@ -296,14 +314,30 @@ function renderNavbar() {
             </span>
           </a>
           <button class="menu-toggle" id="menu-toggle" aria-label="Toggle navigation menu" aria-expanded="false">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="hamburger-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="3" y1="12" x2="21" y2="12"></line>
               <line x1="3" y1="6" x2="21" y2="6"></line>
               <line x1="3" y1="18" x2="21" y2="18"></line>
             </svg>
+            <svg class="close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
           </button>
           <nav class="nav-links" id="nav-links" aria-label="Main navigation">
             ${navLinksHTML}
+            <div class="sidebar-actions">
+              <a class="pill" id="sidebar-discord-pill" href="https://discord.gg/lifestealsmp" target="_blank" rel="noreferrer noopener" title="Join LifeSteal SMP Discord Server">
+                <svg class="discord-icon" viewBox="0 0 640 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path fill="currentColor" d="M524.531,69.836a1.5,1.5,0,0,0-.764-.7A485.065,485.065,0,0,0,404.081,32.03a1.816,1.816,0,0,0-1.923.91,337.461,337.461,0,0,0-14.9,30.6a447.848,447.848,0,0,0-134.426,0a309.541,309.541,0,0,0-15.135-30.6a1.89,1.89,0,0,0-1.924-.91A483.689,483.689,0,0,0,116.085,69.137a1.712,1.712,0,0,0-.788.676C39.068,183.651,18.186,294.69,28.43,404.354a2.016,2.016,0,0,0,.765,1.375A487.666,487.666,0,0,0,176.02,479.918a1.9,1.9,0,0,0,2.063-.676A348.2,348.2,0,0,0,208.12,430.4a1.86,1.86,0,0,0-1.019-2.588a321.173,321.173,0,0,1-45.868-21.853a1.885,1.885,0,0,1-.185-3.126c3.082-2.309,6.166-4.711,9.109-7.137a1.819,1.819,0,0,1,1.9-.256c96.229,43.917,200.41,43.917,295.5,0a1.812,1.812,0,0,1,1.924.233c2.944,2.426,6.027,4.851,9.132,7.16a1.884,1.884,0,0,1-.162,3.126a301.407,301.407,0,0,1-45.89,21.83a1.875,1.875,0,0,0-1,2.611a391.055,391.055,0,0,0,30.014,48.815a1.864,1.864,0,0,0,2.063.7A486.048,486.048,0,0,0,610.7,405.729a1.882,1.882,0,0,0,.765-1.352C623.729,277.594,590.933,167.465,524.531,69.836ZM222.491,337.58c-28.972,0-52.844-26.587-52.844-59.239S193.056,219.1,222.491,219.1c29.665,0,53.306,26.82,52.843,59.239C275.334,310.993,251.924,337.58,222.491,337.58Zm195.38,0c-28.971,0-52.843-26.587-52.843-59.239S388.437,219.1,417.871,219.1c29.667,0,53.307,26.82,52.844,59.239C470.715,310.993,447.538,337.58,417.871,337.58Z" />
+                </svg>
+                <span class="pill-text">
+                  <span id="sidebar-discordcount">…</span>
+                  <span class="pill-sub">Join Discord</span>
+                </span>
+              </a>
+              <a class="btn btn-primary" href="https://store.lifestealsmp.com" target="_blank" rel="noreferrer noopener" title="LifeSteal SMP Store">Store</a>
+            </div>
           </nav>
           <div class="nav-right">
             <a class="pill" id="discord-pill" href="https://discord.gg/lifestealsmp" target="_blank" rel="noreferrer noopener" title="Join LifeSteal SMP Discord Server">
@@ -417,34 +451,71 @@ function initMobileMenu() {
     const toggle = newToggle;
     const nav = newNavLinks;
     
-    toggle.addEventListener('click', () => {
-      const isOpen = nav.classList.toggle('open');
+    // Create backdrop overlay
+    let backdrop = document.getElementById('mobile-menu-backdrop');
+    if (!backdrop) {
+      backdrop = document.createElement('div');
+      backdrop.id = 'mobile-menu-backdrop';
+      backdrop.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(backdrop);
+    }
+    
+    function updateMenuState(isOpen) {
+      if (isOpen) {
+        nav.classList.add('open');
+        toggle.classList.add('active');
+        backdrop.style.display = 'block';
+        // Trigger reflow for animation
+        requestAnimationFrame(() => {
+          backdrop.style.opacity = '1';
+          backdrop.style.visibility = 'visible';
+        });
+        document.body.style.overflow = 'hidden'; // Prevent body scroll when menu is open
+      } else {
+        nav.classList.remove('open');
+        toggle.classList.remove('active');
+        backdrop.style.opacity = '0';
+        backdrop.style.visibility = 'hidden';
+        setTimeout(() => {
+          backdrop.style.display = 'none';
+        }, 300); // Match transition duration
+        document.body.style.overflow = ''; // Restore body scroll
+      }
       toggle.setAttribute('aria-expanded', isOpen);
+    }
+    
+    toggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = !nav.classList.contains('open');
+      updateMenuState(isOpen);
     });
     
-    // Close menu when clicking outside
+    // Close menu when clicking backdrop
+    backdrop.addEventListener('click', () => {
+      updateMenuState(false);
+    });
+    
+    // Close menu when clicking outside (but not on toggle)
     document.addEventListener('click', (e) => {
       if (nav.classList.contains('open') && 
           !nav.contains(e.target) && 
-          !toggle.contains(e.target)) {
-        nav.classList.remove('open');
-        toggle.setAttribute('aria-expanded', 'false');
+          !toggle.contains(e.target) &&
+          !backdrop.contains(e.target)) {
+        updateMenuState(false);
       }
     });
     
     // Close menu when clicking a link
     nav.querySelectorAll('a').forEach(link => {
       link.addEventListener('click', () => {
-        nav.classList.remove('open');
-        toggle.setAttribute('aria-expanded', 'false');
+        updateMenuState(false);
       });
     });
     
     // Close menu on Escape key
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && nav.classList.contains('open')) {
-        nav.classList.remove('open');
-        toggle.setAttribute('aria-expanded', 'false');
+        updateMenuState(false);
       }
     });
   }

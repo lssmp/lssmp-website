@@ -200,6 +200,13 @@ header {
   color: var(--muted);
   transition: color 120ms ease;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.nav-links a.mobile-only {
+  display: none; /* Hidden on desktop, shown in mobile menu */
 }
 
 .nav-links a:hover { 
@@ -214,12 +221,37 @@ header {
 .nav-links a.active::after {
   content: "";
   position: absolute;
-  left: 0;
+  left: 2px;
   right: 0;
-  bottom: -8px;
+  bottom: -6px;
   height: 2px;
   background: var(--accent);
   border-radius: 2px;
+}
+
+/* Hide sidebar actions on desktop */
+.sidebar-actions {
+  display: none;
+}
+
+/* External link icon styling for navigation links - desktop navbar */
+.nav-links a .external-link-icon {
+  width: 11px !important;
+  height: 11px !important;
+  opacity: 0.8 !important;
+  display: inline-flex !important;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: 3px;
+  visibility: visible !important;
+  color: currentColor;
+}
+
+.nav-links a .external-link-icon svg {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  visibility: visible !important;
 }
 
 /* Navigation Right Side */
@@ -243,6 +275,7 @@ header {
   color: var(--text);
   cursor: pointer;
   padding: 0;
+  position: relative;
 }
 
 .menu-toggle:hover {
@@ -252,6 +285,29 @@ header {
 .menu-toggle svg {
   width: 20px;
   height: 20px;
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.menu-toggle svg.hamburger-icon {
+  position: absolute;
+  opacity: 1;
+  transform: rotate(0deg);
+}
+
+.menu-toggle svg.close-icon {
+  position: absolute;
+  opacity: 0;
+  transform: rotate(90deg);
+}
+
+.menu-toggle.active svg.hamburger-icon {
+  opacity: 0;
+  transform: rotate(90deg);
+}
+
+.menu-toggle.active svg.close-icon {
+  opacity: 1;
+  transform: rotate(0deg);
 }
 
 /* Mobile Menu Styles */
@@ -262,36 +318,136 @@ header {
   
   .nav-links {
     position: fixed;
-    top: 64px;
+    top: 64px; /* Start below navbar */
     left: 0;
-    right: 0;
+    bottom: 0;
+    width: 75%;
+    max-width: 400px;
     background: var(--surface);
-    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    display: flex;
     flex-direction: column;
     align-items: stretch;
-    padding: 12px 16px;
-    gap: 0;
-    transform: translateY(-100%);
-    opacity: 0;
+    padding: 16px 16px 24px;
+    gap: 8px;
+    transform: translateX(-100%);
     visibility: hidden;
-    transition: transform 200ms ease, opacity 200ms ease, visibility 200ms ease;
-    z-index: 999;
+    transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1), visibility 300ms ease;
+    z-index: 998;
+    overflow-y: auto;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
   }
   
   .nav-links.open {
-    transform: translateY(0);
-    opacity: 1;
+    transform: translateX(0);
     visibility: visible;
   }
   
+  /* Backdrop overlay */
+  #mobile-menu-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 300ms ease, visibility 300ms ease;
+    z-index: 997;
+    display: none;
+  }
+  
   .nav-links a {
-    padding: 12px 16px;
+    padding: 14px 16px;
     border-radius: 8px;
     width: 100%;
+    font-size: 15px;
+    display: block;
+    position: relative;
   }
   
   .nav-links a:hover {
     background: var(--surface-light);
+  }
+  
+  .nav-links a.mobile-only {
+    display: block;
+  }
+  
+  .nav-links a.active {
+    position: relative;
+    display: inline-flex !important; /* Use inline-flex to shrink to content */
+    width: fit-content !important; /* Force it to be only as wide as content */
+    align-self: flex-start !important; /* Override parent's align-items: stretch */
+    padding: 14px 16px;
+    align-items: center;
+  }
+  
+  /* Make underline only span the text content, not the full link */
+  .nav-links a.active::after {
+    content: "";
+    position: absolute;
+    left: 18px; /* Start after left padding + 2px adjustment */
+    right: 16px; /* End at right padding - this ensures it only spans text width */
+    bottom: 6px; /* Position below the link text - adjusted from 8px to 6px */
+    height: 2px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+  
+  .sidebar-actions {
+    display: flex;
+    flex-direction: row; /* Side by side instead of stacked */
+    gap: 10px;
+    margin-top: 16px;
+    padding: 24px 0 0 0; /* Only top padding, no left/right so border extends fully */
+    border-top: 1px solid var(--border);
+    align-items: flex-start; /* Align items to the left like navbar */
+    width: 100%; /* Full width so border extends fully */
+    box-sizing: border-box;
+  }
+  
+  /* Override stretch for sidebar actions - allow full width for border */
+  .nav-links > .sidebar-actions {
+    align-self: stretch; /* Allow full width */
+  }
+  
+  .sidebar-actions .pill {
+    flex: 2; /* 2:1 ratio with Store button */
+    flex-shrink: 0;
+    display: inline-flex !important;
+    justify-content: center; /* Center content */
+    /* Match pill's exact dimensions for height */
+    height: auto !important;
+    padding: 6px 10px !important; /* Match pill's exact padding (6px 10px) */
+    min-width: 0; /* Allow flex to work */
+    /* All other pill styles (border-radius: 999px, etc.) come from base .pill class */
+  }
+  
+  .sidebar-actions .btn {
+    flex: 1; /* 2:1 ratio with Discord pill (pill is flex: 2, button is flex: 1) */
+    flex-shrink: 0;
+    display: inline-flex !important;
+    justify-content: center; /* Center content */
+    align-items: center;
+    /* Match pill's exact dimensions for height */
+    height: auto !important;
+    padding: 6px 10px !important; /* Match pill's exact padding (6px 10px) */
+    min-width: 0; /* Allow flex to work */
+    /* Red button with white text - btn-primary styles */
+    background: var(--accent) !important; /* Red background */
+    color: #fff !important; /* White text */
+    border: none !important;
+    /* All other button styles come from base .btn class */
+  }
+  
+  /* Mobile sidebar - slightly larger icon */
+  .nav-links a .external-link-icon {
+    width: 12px !important;
+    height: 12px !important;
+    margin-left: 6px;
+    opacity: 0.7;
   }
   
   .topbar { 
@@ -303,7 +459,7 @@ header {
   }
   
   .nav-right .btn { 
-    display: inline-flex; 
+    display: none; /* Hide Store button on mobile - it's in the menu now */
   }
   
   .brandsub { 
@@ -335,6 +491,13 @@ main {
 main > .container:first-of-type {
   flex: 1;
   padding: 18px 0;
+}
+
+/* Mobile: Add side spacing to cards */
+@media (max-width: 820px) {
+  main > .container:first-of-type {
+    padding: 18px 12px; /* Add horizontal padding on mobile */
+  }
 }
 
 main::-webkit-scrollbar {
@@ -369,17 +532,24 @@ footer {
   max-width: 1100px;
   margin: 0 auto;
   padding: 0 16px;
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
   gap: 16px;
   text-align: center;
 }
 
+/* Mobile: Add more side spacing to footer */
+@media (max-width: 820px) {
+  .footer-content {
+    padding: 0 20px; /* Increase horizontal padding on mobile */
+  }
+}
+
 @media (min-width: 640px) {
   .footer-content {
-    grid-template-columns: 1fr auto;
     text-align: left;
-    align-items: center;
   }
 }
 
@@ -387,6 +557,8 @@ footer {
   display: flex;
   align-items: center;
   gap: 16px;
+  flex: 1;
+  min-width: 0; /* Allow text to shrink if needed */
 }
 
 .footer-copyright {
@@ -394,6 +566,7 @@ footer {
   flex-direction: column;
   gap: 4px;
   align-items: center;
+  min-width: 0; /* Allow text to shrink if needed */
 }
 
 @media (min-width: 640px) {
@@ -427,6 +600,7 @@ footer {
   gap: 8px;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 @media (min-width: 640px) {
