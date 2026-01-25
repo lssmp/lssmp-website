@@ -571,22 +571,12 @@ function initCopyButtons() {
         await copyToClipboard(el.textContent || "");
         btn.textContent = "Copied";
         
-        // Show toast if available
-        if (typeof showToast === 'function') {
-          showToast("Copied to clipboard!", "success");
-        }
-        
         setTimeout(() => {
           btn.textContent = originalText;
           btn.disabled = false;
         }, 1200);
       } catch (err) {
         btn.textContent = "Error";
-        
-        // Show toast if available
-        if (typeof showToast === 'function') {
-          showToast("Failed to copy. Please try again.", "error");
-        }
         
         setTimeout(() => {
           btn.textContent = originalText;

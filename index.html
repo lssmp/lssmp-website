@@ -966,8 +966,27 @@
             return;
           }
           
-          // Scroll to join section, but use 'nearest' to avoid scrolling too far
-          joinSection.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+          // Scroll to join section, centering it in the viewport
+          // Check if we're on the main page with .page-content scrollable container
+          const pageContent = document.querySelector('.page-content');
+          if (pageContent) {
+            // Calculate position to center the join section
+            const containerRect = pageContent.getBoundingClientRect();
+            const sectionRect = joinSection.getBoundingClientRect();
+            const scrollTop = pageContent.scrollTop;
+            const sectionTop = sectionRect.top - containerRect.top + scrollTop;
+            const containerHeight = containerRect.height;
+            const sectionHeight = sectionRect.height;
+            const targetScroll = sectionTop - (containerHeight / 2) + (sectionHeight / 2);
+            
+            pageContent.scrollTo({
+              top: Math.max(0, targetScroll),
+              behavior: 'smooth'
+            });
+          } else {
+            // Fallback for other pages or if .page-content doesn't exist
+            joinSection.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+          }
 
           setTimeout(() => {
             if (guide) {
