@@ -56,8 +56,7 @@
 
       /* RGB Tool Styles */
       .rgb-tool {
-        max-width: 1000px;
-        margin: 0 auto;
+        width: 100%;
       }
 
       .card {
@@ -218,11 +217,13 @@
         transform: translateY(-50%) scale(0.95);
       }
 
+      .gradient-add-btn:disabled,
       .gradient-remove-btn:disabled {
         opacity: 0.5;
         cursor: not-allowed;
       }
 
+      .gradient-add-btn:disabled:hover,
       .gradient-remove-btn:disabled:hover {
         transform: translateY(-50%);
         background: var(--surface-light);
@@ -2309,6 +2310,8 @@
             if (removeColorBtn) {
               removeColorBtn.disabled = colorStops.length <= 2;
             }
+            // Update add button state
+            updateAddButtonState();
             saveState(); // Save state when color is removed
           }
         });
@@ -2455,11 +2458,22 @@
             
             // Update button state
             updateRemoveButtonState();
+            updateAddButtonState();
           }
         });
         
         // Initialize button state
         updateRemoveButtonState();
+        updateAddButtonState();
+      }
+
+      // Global function to update add button state
+      function updateAddButtonState() {
+        const addColorBtn = document.getElementById('gradient-add-btn');
+        if (addColorBtn) {
+          // Disable if we have 17 or more colors (maximum limit)
+          addColorBtn.disabled = colorStops.length >= 17;
+        }
       }
 
       // Add color button
@@ -2470,6 +2484,11 @@
         addColorBtn.addEventListener('click', (e) => {
           e.preventDefault();
           e.stopPropagation();
+          
+          // Prevent adding if already at max limit
+          if (colorStops.length >= 17) {
+            return;
+          }
           
           closeAllPickers(); // Close any open pickers
           
@@ -2561,8 +2580,12 @@
           updateOutput();
           updateTextPreview();
           updateRemoveButtonState();
+          updateAddButtonState();
           saveState(); // Save state when color is added via [+] button
         });
+        
+        // Initialize button state
+        updateAddButtonState();
       }
 
       // Copy button
