@@ -460,8 +460,30 @@ function initMobileMenu() {
       document.body.appendChild(backdrop);
     }
     
+    let lastActiveElement = null;
+
+    function getFocusableElements(container) {
+      if (!container) return [];
+      const selectors = [
+        'a[href]',
+        'button:not([disabled])',
+        'input:not([disabled])',
+        'select:not([disabled])',
+        'textarea:not([disabled])',
+        '[tabindex]:not([tabindex="-1"])'
+      ].join(',');
+      return Array.from(container.querySelectorAll(selectors)).filter((el) => {
+        // Skip elements that are not actually visible
+        const rect = el.getBoundingClientRect();
+        return !!(rect.width || rect.height || el.getClientRects().length);
+      });
+    }
+
     function updateMenuState(isOpen) {
       if (isOpen) {
+        // Store focus so we can restore it on close
+        lastActiveElement = document.activeElement;
+
         // Close color picker popups (RGB page) when opening sidebar
         const activeColorPickers = document.querySelectorAll('.custom-color-picker.active');
         activeColorPickers.forEach(picker => {
@@ -478,6 +500,14 @@ function initMobileMenu() {
           backdrop.style.visibility = 'visible';
         });
         document.body.style.overflow = 'hidden'; // Prevent body scroll when menu is open
+
+        // Move keyboard focus into the menu for accessibility
+        setTimeout(() => {
+          const focusables = getFocusableElements(nav);
+          if (focusables.length > 0) {
+            focusables[0].focus({ preventScroll: true });
+          }
+        }, 0);
       } else {
         nav.classList.remove('open');
         toggle.classList.remove('active');
@@ -487,6 +517,17 @@ function initMobileMenu() {
           backdrop.style.display = 'none';
         }, 300); // Match transition duration
         document.body.style.overflow = ''; // Restore body scroll
+
+        // Restore focus to toggle (or whatever had focus before opening)
+        setTimeout(() => {
+          if (toggle && typeof toggle.focus === 'function') {
+            toggle.focus({ preventScroll: true });
+            return;
+          }
+          if (lastActiveElement && typeof lastActiveElement.focus === 'function') {
+            lastActiveElement.focus({ preventScroll: true });
+          }
+        }, 0);
       }
       toggle.setAttribute('aria-expanded', isOpen);
     }
@@ -519,10 +560,39 @@ function initMobileMenu() {
       });
     });
     
-    // Close menu on Escape key
+    // Close menu on Escape key + trap focus inside menu when open
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && nav.classList.contains('open')) {
+      if (!nav.classList.contains('open')) return;
+
+      if (e.key === 'Escape') {
         updateMenuState(false);
+        return;
+      }
+
+      if (e.key !== 'Tab') return;
+
+      const focusables = getFocusableElements(nav);
+      if (focusables.length === 0) return;
+
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+
+      // If focus is outside the menu for any reason, bring it back in.
+      if (!nav.contains(active)) {
+        e.preventDefault();
+        first.focus({ preventScroll: true });
+        return;
+      }
+
+      if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus({ preventScroll: true });
+        return;
+      }
+      if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus({ preventScroll: true });
       }
     });
   }
