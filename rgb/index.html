@@ -583,10 +583,34 @@
         top: 14px;
         right: 14px;
         font-size: 12px;
-        color: var(--muted);
+        color: var(--muted) !important;
         font-weight: 600;
         pointer-events: none;
         z-index: 2;
+        background: transparent !important;
+        background-image: none !important;
+        -webkit-background-clip: unset !important;
+        background-clip: unset !important;
+        -webkit-text-fill-color: unset !important;
+        transition: none !important;
+        will-change: auto !important;
+        isolation: isolate;
+        contain: style layout paint;
+        transform: translateZ(0);
+        backface-visibility: hidden;
+        min-width: 45px;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .char-counter[data-full="true"] {
+        color: var(--accent) !important;
+        -webkit-text-fill-color: var(--accent) !important;
+      }
+
+      .char-counter[data-full="false"] {
+        color: var(--muted) !important;
+        -webkit-text-fill-color: var(--muted) !important;
       }
 
       .text-input-group input[type="text"] {
@@ -2826,10 +2850,23 @@
         const counter = charCounterEl;
         const length = input.value.length;
         counter.textContent = `${length}/24`;
+        // Explicitly remove any gradient styles that might interfere
+        counter.style.setProperty('background', 'transparent', 'important');
+        counter.style.setProperty('background-image', 'none', 'important');
+        counter.style.setProperty('-webkit-background-clip', 'unset', 'important');
+        counter.style.setProperty('background-clip', 'unset', 'important');
+        counter.style.setProperty('transition', 'none', 'important');
+        counter.style.setProperty('transform', 'translateZ(0)', 'important');
+        counter.style.setProperty('backface-visibility', 'hidden', 'important');
+        // Use data attribute for CSS-based color control (more reliable than inline styles)
         if (length >= 24) {
-          counter.style.color = 'var(--accent)';
+          counter.setAttribute('data-full', 'true');
+          counter.style.setProperty('color', 'var(--accent)', 'important');
+          counter.style.setProperty('-webkit-text-fill-color', 'var(--accent)', 'important');
         } else {
-          counter.style.color = 'var(--muted)';
+          counter.setAttribute('data-full', 'false');
+          counter.style.setProperty('color', 'var(--muted)', 'important');
+          counter.style.setProperty('-webkit-text-fill-color', 'var(--muted)', 'important');
         }
       }
 
