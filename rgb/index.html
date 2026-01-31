@@ -628,8 +628,11 @@
         letter-spacing: 0.5px;
         position: relative;
         z-index: 1;
-        line-height: 1.5;
+        line-height: 28px;
         box-sizing: border-box;
+        min-height: 56px;
+        height: 56px;
+        vertical-align: middle;
       }
 
       .text-input-group input[type="text"]::selection {
@@ -669,12 +672,14 @@
         z-index: 0;
         box-sizing: border-box;
         overflow: hidden;
-        display: block;
+        display: flex;
+        align-items: center;
         transition: font-size 120ms ease;
         -webkit-font-smoothing: none;
         -moz-osx-font-smoothing: unset;
         font-smooth: never;
         text-rendering: optimizeSpeed;
+        min-height: 56px;
       }
 
       .text-preview-char {
@@ -1874,7 +1879,57 @@
         
         preview.innerHTML = '';
         
+        // Calculate optimal font size to prevent overflow (for both text and placeholder)
+        const baseFontSize = 24;
+        let fontSize = baseFontSize;
+        
+        // Get container width (accounting for padding and character counter)
+        const containerRect = preview.getBoundingClientRect();
+        const containerWidth = containerRect.width - 28 - 50; // padding (14px * 2) + char counter space (~50px)
+        
+        // Determine text to measure (use placeholder if input is empty)
+        const isPlaceholder = !inputText || inputText.trim() === '';
+        const textToMeasure = isPlaceholder ? (input.placeholder || '') : inputText;
+        
+        if (containerWidth > 0 && textToMeasure.length > 0) {
+          // Create a temporary element to measure text width
+          const tempMeasure = document.createElement('span');
+          tempMeasure.style.position = 'absolute';
+          tempMeasure.style.visibility = 'hidden';
+          tempMeasure.style.whiteSpace = 'pre';
+          tempMeasure.style.fontFamily = '"Minecraft", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+          tempMeasure.style.fontSize = baseFontSize + 'px';
+          // Placeholder always uses default font (font-weight: 500, font-style: normal)
+          // Actual text will be measured later with formatting applied
+          tempMeasure.style.fontWeight = '500';
+          tempMeasure.style.fontStyle = 'normal';
+          tempMeasure.style.letterSpacing = '0.5px';
+          tempMeasure.style.padding = '0';
+          tempMeasure.style.margin = '0';
+          tempMeasure.textContent = textToMeasure;
+          document.body.appendChild(tempMeasure);
+          
+          const textWidth = tempMeasure.offsetWidth;
+          document.body.removeChild(tempMeasure);
+          
+          // If text overflows, scale down the font size (give more space before downscaling)
+          // Only start downscaling when text is significantly wider (0.99 threshold for more space)
+          if (textWidth > containerWidth * 0.99) {
+            fontSize = Math.max(12, Math.floor((containerWidth / textWidth) * baseFontSize * 0.99)); // 0.99 for more space before downscaling
+          }
+        }
+        
+        // Apply the calculated font size
+        preview.style.fontSize = fontSize + 'px';
+        input.style.fontSize = fontSize + 'px';
+        
         if (!inputText || inputText.trim() === '') {
+          // Reset font weight and style to normal when empty (for placeholder)
+          // This ensures placeholder always uses default Minecraft font
+          if (input) {
+            input.style.fontWeight = '500';
+            input.style.fontStyle = 'normal';
+          }
           // Don't show placeholder in preview - let the input's native placeholder show through
           return;
         }
@@ -1901,6 +1956,41 @@
         if (input) {
           input.style.fontWeight = formatBold ? 'bold' : '500';
           input.style.fontStyle = formatItalic ? 'italic' : 'normal';
+        }
+        
+        // Recalculate font size with actual text (may differ from placeholder due to formatting)
+        if (inputText.length > 0) {
+          const containerRect2 = preview.getBoundingClientRect();
+          const containerWidth2 = containerRect2.width - 28 - 50; // padding (14px * 2) + char counter space (~50px)
+          
+          if (containerWidth2 > 0) {
+            // Create a temporary element to measure text width with actual formatting
+            const tempMeasure2 = document.createElement('span');
+            tempMeasure2.style.position = 'absolute';
+            tempMeasure2.style.visibility = 'hidden';
+            tempMeasure2.style.whiteSpace = 'pre';
+            tempMeasure2.style.fontFamily = '"Minecraft", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+            tempMeasure2.style.fontSize = baseFontSize + 'px';
+            tempMeasure2.style.fontWeight = formatBold ? 'bold' : '500';
+            tempMeasure2.style.fontStyle = formatItalic ? 'italic' : 'normal';
+            tempMeasure2.style.letterSpacing = '0.5px';
+            tempMeasure2.style.padding = '0';
+            tempMeasure2.style.margin = '0';
+            tempMeasure2.textContent = inputText;
+            document.body.appendChild(tempMeasure2);
+            
+            const textWidth2 = tempMeasure2.offsetWidth;
+            document.body.removeChild(tempMeasure2);
+            
+            // If text overflows, scale down the font size (give more space before downscaling)
+            // Only start downscaling when text is significantly wider (0.99 threshold for more space)
+            if (textWidth2 > containerWidth2 * 0.99) {
+              const newFontSize = Math.max(12, Math.floor((containerWidth2 / textWidth2) * baseFontSize * 0.99)); // 0.99 for more space before downscaling
+              // Apply the recalculated font size
+              preview.style.fontSize = newFontSize + 'px';
+              input.style.fontSize = newFontSize + 'px';
+            }
+          }
         }
 
         const textLength = inputText.length;
@@ -3368,6 +3458,15 @@
         initRemoveColorButton();
         initRandomizeAllButton();
         initGradientPreviewClick();
+        
+        // Handle window resize to recalculate font size
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+          clearTimeout(resizeTimeout);
+          resizeTimeout = setTimeout(() => {
+            updateTextPreview();
+          }, 150);
+        });
       }
 
       if (document.readyState === 'loading') {
